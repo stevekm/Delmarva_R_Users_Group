@@ -175,7 +175,8 @@ legend("bottomright", bty="n",
        title=paste("y","=",paste(signif(coef(LinAge)[2],digits = 4), 
                                  "x", sep=""),"+",signif(coef(LinAge)[1],
                                                          digits=4),sep=" "),
-       legend=as.expression(bquote(R^2==.(signif(summary(LinAge)$r.squared,digits=4)))))
+       legend=c(as.expression(bquote(R^2==.(signif(summary(LinAge)$r.squared,digits=4)))),
+                paste("p",signif(summary(LinAge)$coefficients[,4][2],4),sep=" = ") ))
 @
 \subsection{Years}
 <<PLOT2>>=
@@ -186,7 +187,8 @@ legend("bottomright", bty="n",
        title=paste("y","=",paste(signif(coef(LinYears)[2],digits = 4), 
                                  "x", sep=""),"+",signif(coef(LinYears)[1],
                                                          digits=4),sep=" "),
-       legend=as.expression(bquote(R^2==.(signif(summary(LinYears)$r.squared,digits=4)))))
+       legend=c(as.expression(bquote(R^2==.(signif(summary(LinYears)$r.squared,digits=4)))),
+                paste("p",signif(summary(LinYears)$coefficients[,4][2],4),sep=" = ") ))
 @
 \subsection{Weight}
 <<PLOT3>>=
@@ -197,7 +199,8 @@ legend("bottomright", bty="n",
        title=paste("y","=",paste(signif(coef(LinWeight)[2],digits = 4), 
                                  "x", sep=""),"+",signif(coef(LinWeight)[1],
                                                          digits=4),sep=" "),
-       legend=as.expression(bquote(R^2==.(signif(summary(LinWeight)$r.squared,digits=4)))))
+       legend=c(as.expression(bquote(R^2==.(signif(summary(LinWeight)$r.squared,digits=4)))),
+                paste("p",signif(summary(LinWeight)$coefficients[,4][2],4),sep=" = ") ))
 @
 \section{Normality}
 \subsection{Store Residuals}
