@@ -1,0 +1,443 @@
+% Compile with knitr
+\documentclass{article}
+\usepackage[sc]{mathpazo} %This changes the font away from Computer Modern
+\usepackage[T1]{fontenc}
+\usepackage{geometry} %Sets page dimensions
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+%\usepackage{array,booktabs}
+\usepackage{cite} %Might be necc for bibtex
+\usepackage[labelfont=bf]{caption} % Necessary for bold-Figure titles.
+\usepackage[unicode=true,pdfusetitle,
+ bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+ breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+ {hyperref}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.3}
+\hypersetup{colorlinks,breaklinks,
+            linkcolor=darkblue,urlcolor=darkblue,
+            anchorcolor=darkblue,citecolor=darkblue}
+%\hypersetup{pdfstartview={XYZ null null 1}} %this is knitr default
+\usepackage{breakurl}
+\usepackage{amsmath}%required for nice equations
+\usepackage{graphicx}%this package comes in handy for including graphics
+\usepackage{url} %for typesetting pretty URLs
+%\usepackage{inconsolata} % Made R code look tidier in early versions of knitr
+
+\begin{document}
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.path='figure/latex-', fig.align='center', fig.show='hold')
+options(replace.assign=TRUE,width=90)
+require(highlight)
+@
+
+ 
+\title{Restaurant Dataset analysis}
+
+\author{
+Stephen Kelly
+\,$^{1}$, 
+\\
+\\
+\footnotesize $^{1}$Department of Biological Sciences, Salisbury University,\\
+\footnotesize Henson Science Hall 230H, Salisbury, MD 21801, USA\\
+\\
+\footnotesize Email: \texttt{stephen.kelly.m@gmail.com}
+} 
+\date{April 22, 2014}
+
+
+\maketitle
+\begin{abstract}
+A data set was acquired from academic sources, containing information for several restaurants gathered in the 1960's. We will use linear regression modeling techniques to determine which predictors, if any, have an effect on restaurant sales.\\
+Document updated on \date{\today}.
+\end{abstract}
+\section{Data Entry}
+The original data was supplied in a .csv file. This file was loaded into an R object. For ease of code distribution, the raw data and data structure was subsequently output to the console, and then copied and pasted into a code chunk so that data could be embedded within this document. \\
+First, we must load up the necessary R packages for use in this analysis.
+<<Packages>>=
+# these packages will be used
+suppressPackageStartupMessages(require(dae))
+suppressPackageStartupMessages(require(e1071))
+suppressPackageStartupMessages(require(nortest))
+suppressPackageStartupMessages(require(MASS))
+suppressPackageStartupMessages(require(xtable))
+suppressPackageStartupMessages(require(stats))
+@
+The following code chunk demonstrates the importation of data from the original .csv file. Values of NA are removed from the data to simplify analysis.
+<<Data_import,eval=FALSE>>=
+# This code chunk imports the data
+# This code chunk is for reference only
+# This code chunk will not be executed during compilation, but is included to show data import
+
+# this is the source file for the data
+Restaurant<-read.csv("/home/kellys/Mat506_Biostats/restrnt3.csv") 
+
+# remove values of NA
+Restaurant<-na.omit(Restaurant) 
+
+# output the raw data & data structure so we can embed it in the document
+dput(Restaurant)
+@
+Using the \texttt{dput()} command in R, we are able to output R code necessary to re-create the original object. This code has been copied and pasted into an R code chunk, and will be used during document compilation. There is a large amount of data, so we will not display this chunk in the compiled version of the document since it will take up several pages. Instead, we will display a sample subsection of the data in Table~\ref{tab:SummaryData}
+<<Data_embed,echo=FALSE>>=
+Restaurant<-structure(list(outlook = c(2L, 4L, 5L, 2L, 3L, 4L, 4L, 4L, 3L, 
+3L, 3L, 5L, 3L, 3L, 2L, 3L, 4L, 6L, 4L, 2L, 2L, 4L, 4L, 4L, 4L, 
+5L, 4L, 3L, 1L, 5L, 4L, 5L, 2L, 1L, 2L, 2L, 4L, 3L, 4L, 3L, 2L, 
+6L, 2L, 2L, 1L, 2L, 2L, 5L, 6L, 2L, 3L, 3L, 4L, 3L, 3L, 5L, 5L, 
+3L, 3L, 2L, 4L, 6L, 4L, 5L, 4L, 5L, 3L, 3L, 1L, 3L, 7L, 5L, 3L, 
+4L, 4L, 2L, 5L, 6L, 3L, 5L, 3L, 1L, 1L, 5L, 5L, 4L, 2L, 1L, 4L, 
+3L, 2L, 3L, 5L, 3L, 5L, 3L, 5L, 4L, 4L, 3L, 2L, 4L, 3L, 2L, 4L, 
+5L, 1L, 4L, 5L, 5L, 4L, 4L, 4L, 2L, 4L, 3L, 7L, 5L, 3L, 2L, 2L, 
+5L, 2L, 4L, 2L, 3L, 3L, 3L, 4L, 3L, 2L, 4L, 5L, 5L, 4L, 6L, 1L, 
+1L, 3L, 5L, 4L, 5L, 5L, 4L, 1L, 7L, 1L, 4L, 3L, 3L, 2L, 2L, 2L, 
+4L, 1L, 5L, 3L, 1L, 2L, 1L, 5L, 2L, 4L, 5L, 1L, 1L, 3L, 4L, 5L, 
+3L, 6L, 4L, 4L, 1L, 3L, 4L, 5L, 3L, 5L, 3L), sales = c(480L, 
+507L, 210L, 72L, 99L, 243L, 200L, 1000L, 550L, 500L, 416L, 292L, 
+400L, 42L, 100L, 180L, 201L, 273L, 1200L, 290L, 58L, 400L, 144L, 
+65L, 465L, 510L, 608L, 200L, 90L, 45L, 249L, 200L, 80L, 500L, 
+125L, 101L, 110L, 1200L, 4700L, 48L, 150L, 621L, 257L, 137L, 
+190L, 320L, 385L, 360L, 600L, 330L, 215L, 425L, 250L, 60L, 141L, 
+800L, 1016L, 60L, 309L, 960L, 56L, 250L, 275L, 150L, 325L, 110L, 
+250L, 550L, 100L, 32L, 366L, 70L, 531L, 225L, 750L, 50L, 163L, 
+550L, 50L, 80L, 435L, 70L, 78L, 210L, 245L, 647L, 120L, 179L, 
+300L, 500L, 150L, 135L, 400L, 530L, 600L, 200L, 800L, 130L, 292L, 
+98L, 250L, 172L, 37L, 250L, 750L, 190L, 140L, 80L, 55L, 690L, 
+200L, 28L, 2L, 217L, 250L, 50L, 290L, 400L, 30L, 70L, 250L, 1600L, 
+290L, 203L, 100L, 220L, 225L, 140L, 39L, 0L, 1096L, 35L, 53L, 
+500L, 180L, 89L, 77L, 460L, 440L, 56L, 15L, 8064L, 71L, 11L, 
+267L, 325L, 155L, 1000L, 85L, 250L, 30L, 20L, 125L, 720L, 240L, 
+240L, 1080L, 225L, 70L, 430L, 65L, 69L, 230L, 180L, 80L, 42L, 
+95L, 55L, 121L, 75L, 250L, 220L, 120L, 500L, 200L, 250L, 215L, 
+733L, 305L, 100L), newcap = c(0L, 22L, 25L, 0L, 7L, 7L, 3L, 20L, 
+0L, 10L, 0L, 0L, 10L, 0L, 15L, 0L, 0L, 60L, 50L, 3L, 2L, 0L, 
+0L, 0L, 0L, 3L, 30L, 3L, 5L, 3L, 6L, 5L, 0L, 5L, 10L, 0L, 2L, 
+0L, 20L, 0L, 20L, 9L, 10L, 0L, 0L, 6L, 4L, 75L, 20L, 0L, 10L, 
+15L, 10L, 30L, 6L, 50L, 16L, 0L, 10L, 20L, 5L, 5L, 10L, 50L, 
+2L, 5L, 5L, 0L, 3L, 1L, 10L, 3L, 2L, 0L, 0L, 5L, 3L, 6L, 4L, 
+0L, 10L, 2L, 0L, 20L, 0L, 10L, 2L, 6L, 3L, 125L, 12L, 2L, 4L, 
+40L, 12L, 10L, 21L, 1L, 20L, 0L, 6L, 1L, 1L, 15L, 78L, 8L, 5L, 
+52L, 0L, 0L, 1L, 2L, 0L, 0L, 0L, 20L, 150L, 10L, 0L, 0L, 0L, 
+20L, 0L, 2L, 5L, 10L, 10L, 14L, 0L, 2L, 73L, 1L, 20L, 25L, 5L, 
+4L, 10L, 3L, 35L, 8L, 23L, 300L, 0L, 0L, 2L, 10L, 0L, 100L, 30L, 
+50L, 5L, 1L, 5L, 13L, 3L, 0L, 20L, 1L, 7L, 35L, 12L, 3L, 0L, 
+5L, 0L, 0L, 0L, 50L, 1L, 10L, 10L, 10L, 10L, 0L, 10L, 3L, 1L, 
+35L, 0L, 20L), value = c(600L, 375L, 275L, 125L, 150L, 150L, 
+225L, 1500L, 410L, 1000L, 400L, 425L, 350L, 15L, 185L, 180L, 
+250L, 300L, 800L, 200L, 75L, 100L, 25L, 25L, 75L, 750L, 395L, 
+350L, 40L, 40L, 275L, 60L, 150L, 350L, 140L, 140L, 160L, 2500L, 
+1500L, 45L, 150L, 0L, 365L, 75L, 400L, 350L, 150L, 325L, 500L, 
+100L, 125L, 1750L, 10L, 45L, 80L, 500L, 1000L, 40L, 500L, 400L, 
+125L, 100L, 295L, 300L, 175L, 235L, 230L, 500L, 200L, 42L, 300L, 
+150L, 450L, 300L, 1000L, 75L, 115L, 600L, 305L, 50L, 250L, 75L, 
+125L, 225L, 450L, 350L, 100L, 70L, 175L, 300L, 210L, 90L, 250L, 
+200L, 90L, 200L, 750L, 150L, 100L, 70L, 250L, 200L, 20L, 750L, 
+0L, 75L, 180L, 60L, 50L, 250L, 175L, 55L, 2L, 750L, 300L, 325L, 
+450L, 300L, 60L, 32L, 0L, 1000L, 125L, 40L, 300L, 70L, 550L, 
+175L, 65L, 0L, 2000L, 0L, 125L, 450L, 300L, 120L, 175L, 75L, 
+1000L, 125L, 30L, 12000L, 185L, 0L, 125L, 400L, 85L, 5000L, 45L, 
+1000L, 40L, 0L, 125L, 650L, 225L, 125L, 1000L, 150L, 225L, 500L, 
+150L, 18L, 0L, 150L, 150L, 75L, 70L, 89L, 160L, 80L, 300L, 350L, 
+80L, 175L, 70L, 5L, 100L, 500L, 450L, 250L), costgood = c(35L, 
+59L, 40L, 85L, 43L, 38L, 42L, 20L, 50L, 50L, 40L, 42L, 30L, 64L, 
+50L, 50L, 70L, 32L, 35L, 39L, 45L, 40L, 45L, 48L, 38L, 35L, 31L, 
+43L, 60L, 40L, 65L, 35L, 60L, 40L, 50L, 54L, 60L, 37L, 50L, 45L, 
+45L, 36L, 40L, 55L, 60L, 50L, 36L, 29L, 38L, 45L, 45L, 39L, 40L, 
+60L, 85L, 50L, 40L, 50L, 52L, 54L, 40L, 33L, 50L, 30L, 45L, 50L, 
+50L, 48L, 35L, 35L, 42L, 50L, 46L, 50L, 40L, 40L, 50L, 48L, 45L, 
+43L, 30L, 30L, 90L, 80L, 36L, 50L, 84L, 43L, 35L, 45L, 45L, 60L, 
+42L, 40L, 35L, 30L, 38L, 0L, 49L, 70L, 50L, 35L, 45L, 40L, 30L, 
+42L, 40L, 36L, 50L, 45L, 49L, 33L, 30L, 51L, 40L, 50L, 51L, 20L, 
+49L, 40L, 37L, 34L, 60L, 39L, 60L, 42L, 50L, 33L, 42L, 43L, 34L, 
+90L, 40L, 45L, 58L, 45L, 35L, 40L, 38L, 40L, 52L, 37L, 40L, 99L, 
+40L, 46L, 35L, 35L, 45L, 35L, 30L, 45L, 50L, 37L, 50L, 45L, 32L, 
+34L, 25L, 42L, 35L, 44L, 35L, 40L, 51L, 65L, 45L, 65L, 55L, 40L, 
+38L, 55L, 35L, 75L, 45L, 35L, 36L, 53L, 58L, 24L), wages = c(25L, 
+20L, 24L, 10L, 25L, 15L, 22L, 20L, 26L, 40L, 21L, 13L, 25L, 35L, 
+15L, 20L, 27L, 28L, 32L, 29L, 28L, 35L, 25L, 20L, 28L, 29L, 28L, 
+21L, 30L, 20L, 30L, 20L, 30L, 30L, 20L, 13L, 20L, 29L, 20L, 25L, 
+25L, 23L, 22L, 30L, 40L, 20L, 29L, 23L, 22L, 25L, 30L, 27L, 40L, 
+30L, 10L, 25L, 36L, 30L, 18L, 22L, 20L, 30L, 25L, 30L, 25L, 30L, 
+30L, 22L, 25L, 10L, 25L, 7L, 30L, 40L, 22L, 20L, 28L, 24L, 9L, 
+18L, 14L, 35L, 0L, 18L, 24L, 30L, 15L, 23L, 30L, 78L, 15L, 18L, 
+35L, 30L, 30L, 30L, 25L, 40L, 30L, 28L, 25L, 14L, 10L, 20L, 32L, 
+31L, 5L, 23L, 20L, 21L, 19L, 0L, 5L, 29L, 30L, 30L, 59L, 25L, 
+30L, 30L, 14L, 32L, 35L, 31L, 0L, 40L, 15L, 10L, 42L, 15L, 29L, 
+10L, 20L, 35L, 40L, 15L, 10L, 23L, 39L, 33L, 46L, 31L, 8L, 0L, 
+25L, 25L, 35L, 20L, 25L, 35L, 30L, 20L, 30L, 24L, 20L, 25L, 30L, 
+22L, 35L, 26L, 30L, 26L, 36L, 25L, 18L, 25L, 25L, 30L, 30L, 26L, 
+29L, 25L, 60L, 20L, 20L, 50L, 33L, 21L, 27L, 30L), ads = c(2L, 
+5L, 3L, 5L, 1L, 2L, 2L, 10L, 2L, 10L, 4L, 1L, 5L, 1L, 1L, 2L, 
+3L, 10L, 3L, 1L, 5L, 1L, 0L, 1L, 7L, 4L, 2L, 4L, 10L, 3L, 5L, 
+2L, 5L, 3L, 5L, 1L, 1L, 3L, 4L, 2L, 5L, 3L, 0L, 3L, 0L, 3L, 4L, 
+3L, 2L, 2L, 2L, 12L, 10L, 10L, 5L, 5L, 1L, 20L, 2L, 2L, 10L, 
+2L, 5L, 0L, 5L, 20L, 4L, 2L, 0L, 2L, 1L, 2L, 1L, 0L, 5L, 5L, 
+5L, 1L, 4L, 2L, 5L, 0L, 10L, 2L, 2L, 5L, 1L, 2L, 1L, 5L, 2L, 
+2L, 1L, 8L, 5L, 5L, 3L, 1L, 8L, 2L, 1L, 3L, 1L, 5L, 3L, 1L, 5L, 
+1L, 10L, 3L, 2L, 1L, 0L, 4L, 10L, 20L, 3L, 5L, 1L, 1L, 4L, 4L, 
+5L, 4L, 1L, 4L, 5L, 5L, 0L, 2L, 1L, 0L, 5L, 1L, 2L, 2L, 1L, 6L, 
+3L, 2L, 2L, 3L, 0L, 0L, 5L, 3L, 5L, 7L, 2L, 0L, 3L, 2L, 10L, 
+6L, 2L, 1L, 5L, 4L, 10L, 2L, 2L, 1L, 3L, 5L, 0L, 10L, 2L, 5L, 
+5L, 5L, 4L, 10L, 2L, 5L, 25L, 0L, 2L, 0L, 2L, 10L), typefood = c(2L, 
+2L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 2L, 2L, 3L, 2L, 2L, 2L, 
+3L, 3L, 1L, 2L, 3L, 3L, 1L, 1L, 1L, 3L, 1L, 1L, 3L, 1L, 3L, 2L, 
+1L, 2L, 2L, 2L, 1L, 1L, 3L, 3L, 1L, 1L, 1L, 1L, 2L, 3L, 1L, 2L, 
+1L, 1L, 3L, 2L, 1L, 1L, 3L, 3L, 3L, 2L, 3L, 2L, 1L, 2L, 1L, 3L, 
+2L, 2L, 2L, 1L, 1L, 2L, 2L, 3L, 1L, 2L, 3L, 2L, 2L, 2L, 3L, 3L, 
+1L, 3L, 1L, 2L, 1L, 2L, 1L, 1L, 1L, 2L, 1L, 1L, 2L, 1L, 3L, 3L, 
+2L, 2L, 1L, 2L, 1L, 3L, 2L, 3L, 3L, 2L, 2L, 3L, 3L, 1L, 3L, 1L, 
+2L, 1L, 2L, 2L, 2L, 1L, 3L, 1L, 1L, 1L, 1L, 2L, 1L, 1L, 1L, 1L, 
+2L, 1L, 1L, 1L, 2L, 3L, 1L, 3L, 1L, 3L, 3L, 1L, 1L, 3L, 1L, 1L, 
+2L, 3L, 1L, 1L, 3L, 3L, 3L, 1L, 1L, 2L, 1L, 3L, 3L, 3L, 2L, 1L, 
+3L, 3L, 1L, 1L, 1L, 3L, 3L, 1L, 3L, 1L, 2L, 1L, 2L, 1L, 3L, 3L, 
+1L, 2L, 3L), seats = c(200L, 150L, 46L, 50L, 130L, 50L, 64L, 
+240L, 125L, 120L, 92L, 150L, 90L, 15L, 80L, 65L, 178L, 110L, 
+150L, 85L, 25L, 85L, 0L, 0L, 111L, 152L, 165L, 68L, 60L, 0L, 
+52L, 24L, 70L, 72L, 68L, 58L, 46L, 200L, 200L, 10L, 0L, 120L, 
+100L, 0L, 125L, 96L, 48L, 120L, 125L, 0L, 15L, 250L, 80L, 16L, 
+34L, 120L, 200L, 80L, 80L, 0L, 44L, 55L, 85L, 77L, 125L, 65L, 
+90L, 100L, 50L, 30L, 150L, 50L, 72L, 43L, 140L, 56L, 75L, 76L, 
+60L, 0L, 36L, 0L, 62L, 28L, 100L, 90L, 55L, 27L, 30L, 125L, 60L, 
+42L, 36L, 180L, 30L, 50L, 144L, 60L, 75L, 32L, 90L, 0L, 12L, 
+95L, 94L, 60L, 87L, 100L, 40L, 196L, 100L, 34L, 10L, 95L, 20L, 
+75L, 110L, 85L, 0L, 65L, 16L, 52L, 70L, 0L, 50L, 85L, 200L, 0L, 
+75L, 75L, 142L, 60L, 30L, 132L, 30L, 0L, 0L, 94L, 110L, 0L, 0L, 
+550L, 0L, 4L, 44L, 70L, 70L, 180L, 54L, 150L, 55L, 0L, 65L, 150L, 
+30L, 0L, 170L, 120L, 43L, 0L, 35L, 43L, 150L, 130L, 0L, 36L, 
+42L, 32L, 30L, 26L, 50L, 70L, 80L, 200L, 70L, 15L, 98L, 0L, 85L, 
+100L), owner = c(3L, 1L, 1L, 1L, 1L, 2L, 1L, 3L, 3L, 1L, 3L, 
+3L, 1L, 2L, 3L, 1L, 1L, 3L, 3L, 3L, 3L, 3L, 1L, 1L, 3L, 3L, 3L, 
+2L, 1L, 1L, 1L, 3L, 1L, 3L, 3L, 1L, 1L, 3L, 3L, 3L, 3L, 3L, 1L, 
+3L, 1L, 1L, 3L, 3L, 3L, 1L, 1L, 1L, 3L, 2L, 2L, 2L, 3L, 3L, 1L, 
+3L, 1L, 3L, 3L, 3L, 3L, 2L, 3L, 3L, 3L, 1L, 3L, 3L, 3L, 1L, 2L, 
+1L, 3L, 2L, 1L, 1L, 1L, 1L, 1L, 1L, 3L, 3L, 1L, 1L, 3L, 3L, 1L, 
+1L, 3L, 3L, 3L, 3L, 3L, 3L, 2L, 1L, 3L, 1L, 1L, 3L, 2L, 3L, 1L, 
+1L, 3L, 3L, 1L, 3L, 3L, 3L, 3L, 3L, 1L, 3L, 2L, 1L, 3L, 3L, 3L, 
+1L, 2L, 3L, 3L, 1L, 1L, 1L, 3L, 1L, 3L, 3L, 3L, 1L, 1L, 3L, 3L, 
+1L, 1L, 3L, 1L, 1L, 3L, 1L, 1L, 3L, 1L, 3L, 1L, 3L, 1L, 3L, 1L, 
+1L, 3L, 3L, 1L, 3L, 1L, 1L, 3L, 3L, 1L, 1L, 1L, 3L, 1L, 1L, 3L, 
+1L, 1L, 3L, 3L, 2L, 3L, 1L, 3L, 3L), ft.empl = c(8L, 6L, 0L, 
+0L, 1L, 2L, 3L, 30L, 6L, 4L, 7L, 1L, 15L, 0L, 0L, 1L, 0L, 7L, 
+35L, 16L, 2L, 18L, 6L, 2L, 6L, 30L, 30L, 3L, 3L, 0L, 8L, 4L, 
+1L, 20L, 0L, 2L, 0L, 80L, 15L, 0L, 10L, 5L, 14L, 1L, 2L, 10L, 
+20L, 4L, 28L, 2L, 11L, 2L, 10L, 0L, 0L, 35L, 20L, 2L, 6L, 7L, 
+0L, 10L, 10L, 4L, 20L, 2L, 4L, 13L, 0L, 3L, 12L, 3L, 1L, 10L, 
+15L, 0L, 5L, 3L, 4L, 0L, 1L, 1L, 5L, 0L, 7L, 5L, 1L, 1L, 7L, 
+10L, 0L, 3L, 13L, 25L, 36L, 4L, 20L, 3L, 6L, 0L, 7L, 0L, 1L, 
+26L, 40L, 6L, 3L, 0L, 0L, 8L, 0L, 0L, 0L, 3L, 10L, 2L, 5L, 10L, 
+2L, 2L, 3L, 20L, 6L, 8L, 0L, 6L, 1L, 0L, 0L, 1L, 42L, 4L, 5L, 
+18L, 8L, 1L, 0L, 2L, 40L, 12L, 0L, 250L, 0L, 0L, 2L, 3L, 10L, 
+30L, 1L, 25L, 1L, 0L, 0L, 6L, 5L, 7L, 40L, 18L, 4L, 6L, 10L, 
+0L, 20L, 2L, 1L, 0L, 4L, 0L, 3L, 2L, 5L, 0L, 2L, 32L, 0L, 1L, 
+5L, 6L, 3L, 0L), pt.empl = c(30L, 25L, 17L, 5L, 8L, 19L, 12L, 
+40L, 16L, 28L, 15L, 16L, 10L, 0L, 7L, 14L, 20L, 13L, 45L, 14L, 
+2L, 15L, 3L, 2L, 32L, 25L, 12L, 18L, 3L, 7L, 10L, 20L, 4L, 6L, 
+8L, 3L, 6L, 45L, 50L, 12L, 20L, 45L, 3L, 3L, 11L, 10L, 28L, 15L, 
+5L, 14L, 0L, 70L, 4L, 4L, 4L, 13L, 40L, 4L, 14L, 40L, 2L, 15L, 
+3L, 13L, 6L, 10L, 12L, 6L, 6L, 0L, 40L, 2L, 39L, 4L, 25L, 5L, 
+4L, 30L, 6L, 6L, 11L, 2L, 0L, 5L, 20L, 12L, 5L, 15L, 8L, 22L, 
+10L, 4L, 3L, 12L, 4L, 12L, 21L, 9L, 24L, 7L, 7L, 20L, 1L, 13L, 
+6L, 3L, 3L, 8L, 6L, 35L, 18L, 0L, 2L, 25L, 10L, 3L, 14L, 10L, 
+4L, 3L, 13L, 55L, 2L, 4L, 0L, 7L, 15L, 4L, 30L, 4L, 30L, 0L, 
+7L, 20L, 3L, 2L, 5L, 35L, 30L, 0L, 0L, 60L, 3L, 0L, 13L, 9L, 
+3L, 20L, 6L, 30L, 4L, 3L, 6L, 25L, 6L, 3L, 50L, 5L, 2L, 30L, 
+4L, 9L, 12L, 6L, 2L, 3L, 1L, 2L, 2L, 2L, 20L, 15L, 22L, 1L, 10L, 
+3L, 17L, 40L, 25L, 7L)), .Names = c("outlook", "sales", "newcap", 
+"value", "costgood", "wages", "ads", "typefood", "seats", "owner", 
+"ft.empl", "pt.empl"), row.names = c(1L, 2L, 3L, 7L, 8L, 10L, 
+11L, 12L, 14L, 15L, 17L, 19L, 20L, 21L, 22L, 24L, 25L, 26L, 29L, 
+31L, 32L, 33L, 36L, 37L, 39L, 41L, 43L, 44L, 45L, 46L, 48L, 49L, 
+50L, 51L, 52L, 53L, 54L, 55L, 57L, 58L, 59L, 62L, 63L, 64L, 65L, 
+67L, 70L, 71L, 73L, 74L, 75L, 76L, 77L, 79L, 80L, 81L, 83L, 84L, 
+85L, 86L, 88L, 89L, 90L, 91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L, 
+99L, 100L, 101L, 105L, 107L, 108L, 110L, 112L, 113L, 114L, 115L, 
+116L, 117L, 121L, 126L, 130L, 132L, 133L, 134L, 135L, 136L, 137L, 
+139L, 141L, 146L, 147L, 149L, 152L, 154L, 155L, 156L, 160L, 165L, 
+168L, 169L, 170L, 171L, 172L, 173L, 174L, 175L, 177L, 178L, 179L, 
+182L, 183L, 186L, 187L, 188L, 189L, 190L, 191L, 192L, 194L, 196L, 
+197L, 198L, 200L, 202L, 203L, 204L, 205L, 209L, 210L, 211L, 212L, 
+213L, 214L, 215L, 216L, 218L, 221L, 222L, 223L, 224L, 225L, 226L, 
+227L, 228L, 229L, 230L, 232L, 233L, 235L, 237L, 239L, 240L, 242L, 
+243L, 245L, 246L, 247L, 250L, 252L, 253L, 256L, 257L, 258L, 259L, 
+261L, 262L, 263L, 265L, 267L, 268L, 269L, 271L, 274L, 277L), class = "data.frame", na.action = structure(c(4L, 
+5L, 6L, 9L, 13L, 16L, 18L, 23L, 27L, 28L, 30L, 34L, 35L, 38L, 
+40L, 42L, 47L, 56L, 60L, 61L, 66L, 68L, 69L, 72L, 78L, 82L, 87L, 
+102L, 103L, 104L, 106L, 109L, 111L, 118L, 119L, 120L, 122L, 123L, 
+124L, 125L, 127L, 128L, 129L, 131L, 138L, 140L, 142L, 143L, 144L, 
+145L, 148L, 150L, 151L, 153L, 157L, 158L, 159L, 161L, 162L, 163L, 
+164L, 166L, 167L, 176L, 180L, 181L, 184L, 185L, 193L, 195L, 199L, 
+201L, 206L, 207L, 208L, 217L, 219L, 220L, 231L, 234L, 236L, 238L, 
+241L, 244L, 248L, 249L, 251L, 254L, 255L, 260L, 264L, 266L, 270L, 
+272L, 273L, 275L, 276L, 278L), .Names = c("4", "5", "6", "9", 
+"13", "16", "18", "23", "27", "28", "30", "34", "35", "38", "40", 
+"42", "47", "56", "60", "61", "66", "68", "69", "72", "78", "82", 
+"87", "102", "103", "104", "106", "109", "111", "118", "119", 
+"120", "122", "123", "124", "125", "127", "128", "129", "131", 
+"138", "140", "142", "143", "144", "145", "148", "150", "151", 
+"153", "157", "158", "159", "161", "162", "163", "164", "166", 
+"167", "176", "180", "181", "184", "185", "193", "195", "199", 
+"201", "206", "207", "208", "217", "219", "220", "231", "234", 
+"236", "238", "241", "244", "248", "249", "251", "254", "255", 
+"260", "264", "266", "270", "272", "273", "275", "276", "278"
+), class = "omit"))
+@
+
+<<Data_Summ_xtable,results='asis'>>=
+print(xtable(x = head(Restaurant,n = 10),
+             caption = "The first 10 entries in the Restaurant data set. Entries that contained 'NA' have been removed.",
+             label = "tab:SummaryData"))
+@
+The following code chunk shows us that 180 restaurants have been included in the dataset, and returns a list of the predictors used in the analysis.
+<<Data_summ_2>>=
+# the number of restaurants included in the dataset
+nrow(Restaurant)
+
+# the predictors included in the data set; don't include 'sales'
+colnames(Restaurant)[-2]
+@
+\section{Hypotheses}
+\subsection{Goals}
+Our goal is to compare linear regression equations derived from different models in the analysis of restaurant predictors versus sales. Backwards, forwards, and stepwise models will be used. We will also be evaluating the results to determine if all assumptions were met. Residuals will be plotted,
+% R\(^{2}\) values will be found,
+and normality will be tested.
+\section{Linear Regression}
+\begin{itemize}
+\item Researcher's Hypothesis: There will be a relationship between some or all of the predictors and restaurant Sales.
+\item H$_{0}$: There is no relationshp between predictors and sales
+\item H$_{A}$: There is a relationshp between predictors and sales
+\item $\alpha$ = 0.05
+\end{itemize}
+
+\section{Linear Regression Modeling}
+\subsection{Create Linear Model}
+First, we will create a linear regression model to test Sales against all predictors.
+<<LinearRegression1>>=
+options(na.action=na.exclude)
+LinearReg<-lm(sales~outlook+newcap+value+costgood+wages+ads+typefood+seats+owner+ft.empl+pt.empl, 
+              data=Restaurant)
+LinFor<-summary(LinearReg)
+LinCoeffs<-data.frame(coefficients(LinearReg))
+@
+
+<<Fortable,results='asis'>>=
+print(xtable(LinFor,caption="Regression table"))
+print(xtable(LinCoeffs,caption="Linear regression coefficients for all predictors"))
+@
+\subsection{Stepwise}
+Now we will do a stepwise analysis on the linear model
+<<Stepwise>>=
+options(na.action=na.exclude)
+StepStep<-stepAIC(LinearReg,direction="both")
+@
+\subsection{Forward}
+Now we will do a forward analysis on the linear model
+<<Forward>>=
+StepFor<-stepAIC(LinearReg,direction="forward")
+@
+\subsection{Backward}
+Now we will do a backwards analysis of the linear model
+<<Backward>>=
+StepBack<-stepAIC(LinearReg,direction="backward")
+@
+%F test on stepwise AIC model vs full lm model
+\section{Normality}
+\subsection{Testing plot method}
+Next, we will generate plots to describe the linear model of our data set. 
+<<RegressionPlots>>=
+par(mfrow=c(2,2))
+plot(LinearReg)
+@
+\subsection{Store Residuals}
+Now, we will test the normality of standardized residuals. First, store the residuals from the data set.
+<<Residuals>>=
+Resid.Lin<-rstandard(LinearReg)
+@
+\subsection{Fitted Values}
+In this section, we will store the fitted values.
+<<FittedValues>>=
+FittedValues<-fitted(LinearReg)
+@
+\subsection{Fitted values vs. Std. Residuals}
+Now we will plot the fitted values against the standardized residuals
+<<FitPlot>>=
+par(mfrow=c(1,1))
+plot(Resid.Lin~FittedValues,
+     main="Std. Residuals vs. Fitted Values")
+# abline()
+@
+
+\subsection{Q-Q Plot Overall Regression}
+ Next we will generate some Q-Q plots to view the distribution of the data by plotting the standardized residuals. First, we will show the overall linear regression, which includes all predictors.
+<<QPlots,eval=TRUE>>=
+#OVERALL LINEAR REGRESSION PLOT
+qqnorm(Resid.Lin,
+       main="Q-Q Plot for Overall Linear Regression",
+       cex.main=1)#generates a qqplot
+qqline(Resid.Lin,col=2)#puts a line on the qqplot
+@
+The Q-Q plot looks like it has some extreme outliers, which will probably skew the distribution of the data.
+\subsection{Histogram}
+Here we will generate a histogram to show the distribution of the data (bars) compared to a normal distribution curve (dashed line).
+<<Histogram>>=
+options(na.action=na.omit)
+
+hist(x   =Restaurant[['sales']], #generates a histogram to show sampling distribution
+     freq=FALSE,
+     col ='turquoise',
+     main='Sample Distribution Histogram', 
+#      xlim=c(min(Restaurant[['sales']]),max(Restaurant[['sales']])),
+     
+ #    ylim=c(0, 0.25),
+     xlab='Restaurant Sales',
+     ylab='Frequency'
+     )
+Pi <- seq(from  =min(Restaurant[['sales']]),#creates a series of points within the range of the data
+          to    =max(Restaurant[['sales']]),
+          length=100
+          )
+lines(x  =Pi,#plots a normal curve based on the data
+      y  =dnorm(x=Pi,mean=mean(Restaurant[['sales']]),sd=sd(Restaurant[['sales']])),
+      lty='dashed',
+      col='gray25')
+@
+These data do not seem to be normally distributed.
+\subsection{Normality Tests}
+Next, we will run normality tests to see if the results agree with our interpretation of the normality plots.
+<<TukeyNormalityTests,eval=TRUE>>=
+# Normality tests on Standardized Residuals
+Tests<-c('Anderson-Darling',   # Similar to Shapiro, but emphasizes tails
+         'Cramer-von Mises',
+         'Kolmogorov-Smirnov', # a.k.a Lilliefors test
+         'Chi-Squared',        # Pearson chi-square test
+         'Shapiro-Francia',    # 
+         'Shapiro-Wilk')       # Shapiro-Wilk
+Results1<-c(assign('ad1',ad.test(     Resid.Lin))[2],
+           assign('cv1',cvm.test(    Resid.Lin))[2],
+           assign('lt1',lillie.test( Resid.Lin))[2],
+           assign('px1',pearson.test(Resid.Lin))[2],
+           assign('sf1',sf.test(     Resid.Lin))[2],
+           assign('sw1',shapiro.test(Resid.Lin))[2]
+)
+# ^^^ ignore this warning message ^^^
+
+#Overall normality test results
+Normality<-data.frame(P.Value=unlist(Results1),row.names=Tests)
+@
+
+<<NORMTABLE,results='asis'>>=
+print(xtable(Normality,caption="Normality Test Results",label="tab:Normality"))
+@
+We can see from the results in the Normality Test table that all tests indicated a lack of normality in the distribution of the data (P<0.01).
+\section{Conclusions}
+There was a clear relationship between the predictors and sales (P<0.001), causing us to reject the null hypothesis. Through the use of linear regression models %and ANOVA
+, we were able to develop an equation that described the relationship between the significant predictors (value, ft.employees, pt.employees) and sales., %and find R\(^{2}\) values and significance levels (see attached). 
+The sales data was shown to be not normally distributed, as can be seen in the normality tests (Table~\ref{tab:Normality}).
+\section{System and Session Information}
+<<sessionInfo>>=
+date()
+system('uname -srv',intern=TRUE)
+sessionInfo()
+@
+
+\end{document}
