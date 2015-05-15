@@ -304,8 +304,8 @@ and normality will be tested.
 \section{Linear Regression}
 \begin{itemize}
 \item Researcher's Hypothesis: There will be a relationship between some or all of the predictors and restaurant Sales.
-\item H$_{0}$: There is no relationshp between predictors and sales
-\item H$_{A}$: There is a relationshp between predictors and sales
+\item H$_{0}$: There is no relationship between predictors and sales
+\item H$_{A}$: There is a relationship between predictors and sales
 \item $\alpha$ = 0.05
 \end{itemize}
 
