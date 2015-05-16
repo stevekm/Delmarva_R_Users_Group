@@ -103,6 +103,7 @@ suppressPackageStartupMessages(require(beanplot))
 suppressPackageStartupMessages(require(e1071))
 suppressPackageStartupMessages(require(nortest))
 suppressPackageStartupMessages(require(car))
+suppressPackageStartupMessages(require(gplots))
 @
 Raw data is embedded in this document, and will be loaded into R. Grades from three exams each from seven sections of the same class were included in this analysis, with 183 total students. Students that did not take all three exams have been excluded from this analysis.
 % Section LabInstructor n LecInstructor 
@@ -415,6 +416,12 @@ for(i in unique(gradesFctr$Exam)){ # iterate by Exam
 }
 %
 \section{Hypothesis Testing}
+\subsection{Transformation}
+Because our data is in the form of percentages, from 0 to 100, we should transform the grades based on the arcsine or \texttt{asin} function.
+<<DataTransform>>=
+gradesFctrTrns<-gradesFctr
+gradesFctrTrns$Grade<-asin(gradesFctrTrns$Grade/100)
+@
 \subsection{Exam 3 Differences by Section}
 \begin{itemize}
 \item Researcher's Hypothesis: There will be a difference between Exam 3 grades between class Sections
@@ -423,7 +430,7 @@ for(i in unique(gradesFctr$Exam)){ # iterate by Exam
 \item $\alpha$ = 0.05
 \end{itemize}
 In order to determine if we can use parametric statistical testing, we will first conduct Normality tests on the Exam 3 data divided by Section.
-\subsection{Normality Test}
+\subsection{Normality Test by Section}
 We will test subsets of the exam grade data set for normality. The following standard set of Normality tests will be used:
 <<Stats1,echo=TRUE>>=
 # Normality tests
@@ -442,7 +449,7 @@ Tests<-c('Shapiro-Wilk',
 % "For small sample sizes, normality tests have little power to reject the null hypothesis and therefore small samples most often pass normality tests (7). For large sample sizes, significant results would be derived even in the case of a small deviation from normality (2, 7), although this small deviation will not affect the results of a parametric test (7)."
 First, we will test the Exam 3 grades for each class Section for normality of grade distribution. It is important to remember that for small sample sizes, normality tests may not accurately reject the null hypothesis. Due to the nature of the data and small sample sizes, it is hypothesized that the data will not be normally distributed (p<0.05)
 \begin{itemize}
-\item Normality Testing Hypothesis: The data is normally distributed
+\item Normality Testing Hypothesis: The data is not normally distributed
 \item H$_{0}$: The data appears to be normally distributed
 \item H$_{A}$: The data does not appear to be normally distributed
 \item $\alpha$ = 0.05
@@ -455,10 +462,10 @@ First, we will test the Exam 3 grades for each class Section for normality of gr
 \end{itemize}
 A \texttt{for} loop will be used to generate Q-Q plots to visually check the distribution of the data compared to that of an expected normally distributed data set. Results from the Normality tests will be embedded within each plot, with an asterisk besides tests that return significant p values less than 0.05 (i.e. data does not appear to be normally distributed).
 <<Exam3QQ>>=
-for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
+for(i in unique(gradesFctrTrns[gradesFctrTrns$Exam==3,]$Section)){
   
   # store the data subset in a new R object
-  tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
+  tmp<-gradesFctrTrns[gradesFctrTrns$Section==i & gradesFctrTrns$Exam==3,]
   # store a vector of just the Grades
   tmpGrades<-tmp$Grade
   # store a copy of the Normality Tests
@@ -484,7 +491,8 @@ for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
   qqline(tmpGrades,col='red',lty='dashed',lwd=3)
   
   legend("bottomright",bty = "n",cex = 0.8,
-         legend=c(paste(tmpTests[1],signif(PVALUES[1,],3)),
+         legend=c(paste("n = ",length(tmpGrades)),
+                  paste(tmpTests[1],signif(PVALUES[1,],3)),
                   paste(tmpTests[2],signif(PVALUES[2,],3)),
                   paste(tmpTests[3],signif(PVALUES[3,],3)),
                   paste(tmpTests[4],signif(PVALUES[4,],3)),
@@ -526,7 +534,53 @@ for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
 % \label{fig:3}
 \end{figure}
 \clearpage
-Due to small sample size, it is important to remember that Normality tests may not accurately reject the null hypothesis and give significant p-values (<0.05) suggesting that data is not normal when it actually is. Results suggest that while some data sets returned non-significant p-pvalues, which does not rule out a normal distribution of the data (unable to reject the null hypothesis), the majority of the data sets returned significant p-values suggesting that the data is not normal (reject the null hypothesis). % from these results it appears that it might not be easy to determine which 
+Due to small sample size, it is important to remember that Normality tests may not accurately reject the null hypothesis and give significant p-values (<0.05) suggesting that data is not normal when it actually is. 
+Normality test results show that all sections returned p-values greater than 0.05 except for Section 15. This shows that, after arcsin transformation, all data was normally distributed. 
+\subsection{Equality of Variance}
+Next, we will check our data sets for equality of variances. The variances between factor levels in our data set should be equal if we wish to use parametric statistics. We will exclude Section 15 from the data set, since it did not have a normal distribution and will not be appropriate to include in parametric statistical tests. 
+\begin{itemize}
+\item Equality of Variance Hypothesis: The variances among data groupings are not equal
+\item H$_{0}$: The variances among data are equal
+\item H$_{A}$: The variances among data are not equal
+\item $\alpha$ = 0.05
+\end{itemize}
+<<Variances,eval=TRUE,echo=TRUE>>=
+# make a fresh copy of the subsetted transformed data
+tmp<-gradesFctrTrns[gradesFctrTrns$Section!=15 & gradesFctrTrns$Exam==3,]
+# output the Levene test results
+print(leveneTest(Grade~Section,data=tmp))
+# Levene Test: test equlity of variances. H0 = variances are equal 
+# Test equality of variances between Exams
+# P Value is less than 0.05 so we reject the null hypothesis that variances are equal. 
+#Otherwise, would satisfy all assumptions so we can use the anova parametric test because we have 3 or more 
+###
+
+@
+The Levene's Test returned a p-value much higher than 0.05, indicating that the variances in the transformed grade data are equal between sections.
+\section{ANOVA}
+For parametric analysis, we need 3 or more categories of data, with equal variances and normal distribution. After excluding Section 15 from our Exam 3 data, all of these conditions have been satisfied. We can now perform an analysis of variance (ANOVA) on the data to determine if there are significant differences between Exam 3 grades between Sections.
+\begin{itemize}
+\item ANOVA Hypothesis: There are significant differences between Grades for Exam 3 between Sections.
+\item H$_{0}$: There are no differences in exam results between sections
+\item H$_{A}$: There are differences in exam results between sections
+\item $\alpha$ = 0.05
+\end{itemize}
+<<ANOVA_Section>>=
+# remember that R function go like this; dependent ~ independent
+# use our transformed data, without Section 15
+tmp<-gradesFctrTrns[gradesFctrTrns$Section!=15 & gradesFctrTrns$Exam==3,]
+# perform the ANOVA, save it into an object
+SectionANOVA<-aov(Grade~Section,data=tmp)
+summary(SectionANOVA)
+@
+The ANOVA returned a p-value much higher than 0.05. We are unable to reject the null hypothesis and must conclude that there are not significant differences in scores on Exam 3 between different Sections of the course. We can visualize the ANVOA results. 
+<<plotMeansSection>>=
+plotmeans(Grade~Section,data=tmp,main="Exam 3 Means & Conf. Intervals")
+@
+% # <<TukeySections>>=
+% # TukeyHSD(SectionANOVA)
+% # @
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Exam 3 Differences by Lab Instructor}
 \begin{itemize}
 \item Researcher's Hypothesis: There will be a difference between Exam 3 grades between Lab Instructors
@@ -535,8 +589,69 @@ Due to small sample size, it is important to remember that Normality tests may n
 \item $\alpha$ = 0.05
 \end{itemize}
 In order to determine if we can use parametric statistical testing, we will first conduct Normality tests on the Exam 3 data divided by Lab Instructor.
-
-
+\subsection{Normality by Lab Instructor}
+<<Exam3QQLabIntr>>=
+for(i in unique(gradesFctrTrns[gradesFctrTrns$Exam==3,]$LabInstr)){
+  
+  # store the data subset in a new R object
+  tmp<-gradesFctrTrns[gradesFctrTrns$LabInstr==i & gradesFctrTrns$Exam==3,]
+  # store a vector of just the Grades
+  tmpGrades<-tmp$Grade
+  # store a copy of the Normality Tests
+  tmpTests<-Tests
+  # conduct the Normality tests, save into a list
+  Results<-c(assign('sw1',shapiro.test(tmpGrades))[2],
+             assign('ad1',ad.test(tmpGrades))[2],
+             assign('sf1',sf.test(tmpGrades))[2],
+             assign('lt1',lillie.test(tmpGrades))[2],
+             assign('cv1',cvm.test(tmpGrades))[2],
+             assign('px1',pearson.test(tmpGrades))[2])
+  # evalute the Test results, put an asterisk next to significant tests
+  for(q in 1:length(Results)){
+    if(Results[q]<=0.05) tmpTests[q]<-paste0("* ",tmpTests[q]) else tmpTests[q]<-tmpTests[q]
+  }
+  
+  PVALUES<-data.frame(P.Value=unlist(Results),row.names=tmpTests)
+  
+  pdf(file=paste0("./figure/LabInstr_",i,"_Exam3_QQ.pdf"),width=5,height=5)
+  
+  qqnorm(tmpGrades,col='blue',
+         main = paste0("Q-Q Plot for LabInstr ",i," Exam 3"))
+  qqline(tmpGrades,col='red',lty='dashed',lwd=3)
+  
+  legend("bottomright",bty = "n",cex = 0.8,
+         legend=c(paste("n = ",length(tmpGrades)),
+                  paste(tmpTests[1],signif(PVALUES[1,],3)),
+                  paste(tmpTests[2],signif(PVALUES[2,],3)),
+                  paste(tmpTests[3],signif(PVALUES[3,],3)),
+                  paste(tmpTests[4],signif(PVALUES[4,],3)),
+                  paste(tmpTests[5],signif(PVALUES[5,],3)),
+                  paste(tmpTests[6],signif(PVALUES[6,],3))))
+  dev.off()
+}
+@
+\begin{figure}%
+%
+\foreach \q in {1,2,3,4} {%,33,34,21,22,23,24} {%
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/LabInstr_\q _Exam3_QQ}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\centering
+\foreach \q in {5} {
+\includegraphics[width=0.5\textwidth]{./figure/LabInstr_\q _Exam3_QQ}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+\clearpage
 
 %%%%%%%%%%
 <<Variances,eval=FALSE,echo=FALSE>>=
