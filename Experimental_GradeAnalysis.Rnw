@@ -1,0 +1,674 @@
+\documentclass{article}
+\usepackage[sc]{mathpazo} 
+\usepackage[T1]{fontenc}
+\usepackage{geometry} 
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+%\usepackage{array,booktabs}
+\usepackage{cite} 
+\usepackage[labelfont=bf]{caption} 
+\usepackage[unicode=true,pdfusetitle,
+bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+% \usepackage{xcolor}%
+% \usepackage[table]{xcolor}% http://ctan.org/pkg/xcolor
+\usepackage{xcolor,colortbl}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.3}
+% \definecolor{lightWhite}{HTML}{FEFEFE}
+% \definecolor{lightestBlue}{HTML}{CBCBFE}
+% \definecolor{blue0}{HTML}{E5E5FE}
+% \definecolor{blue1}{HTML}{CBCBFE}
+% \definecolor{blue2}{HTML}{B2B2FE}
+% \definecolor{blue3}{HTML}{9898FE}
+% \definecolor{blue4}{HTML}{7F7FFE}
+% \definecolor{blue5}{HTML}{6666FE}
+% \definecolor{blue6}{HTML}{4C4CFE}
+% \definecolor{blue7}{HTML}{3333FE}
+% \definecolor{blue8}{HTML}{1919FE}
+% \definecolor{blue9}{HTML}{0000FE}
+\hypersetup{colorlinks,breaklinks,
+linkcolor=darkblue,urlcolor=darkblue,
+anchorcolor=darkblue,citecolor=darkblue}
+\usepackage{breakurl}
+\usepackage{etoolbox} 
+\usepackage{forloop}
+\usepackage{tikz} 
+\usepackage{subcaption} 
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{url} 
+%%%%
+\newcommand{\hlslc}[1]{\textcolor[rgb]{0.67,0.67,0.67}{\it{#1}}} %add this to preamble after \usepackage[auth-sc]{authblk}
+\begin{document}
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.path='figure/latex-', fig.align='center', fig.show='hold')
+options(replace.assign=TRUE,width=90)
+require(highlight)
+@ 
+
+
+\title{Student Grade Analysis}
+
+\author{Stephen Kelly} 
+\date{May 6, 2015}
+
+\maketitle
+\begin{abstract}
+A simulated data set was generated to examine student grades. Students were placed in one of seven class sections, and three exams were administered. Exam grade results will be analyzed to determine if differences exist between class sections, and to determine if exam performance can predict overall performance in the class. \\
+Document updated on \date{\today}.
+\end{abstract}
+%%%%%%%%%%%%%%%%%%5
+%
+%
+% This workflow analyzes student grades on three exams over the course of a semester. 
+% Things to do: get the TeX tables from the PValue normality tests to output correctly
+% finish statistical analysis; generate QQ plots, output them
+% After testing for normality, run ANOVA or similar test, figure out which Sections are different
+% Test for correlations between Exam 1, 2, 3 grades in students
+%%%%%%%%%%%%%%%%
+First, necessary R packages will be loaded.
+<<require_packages,echo=TRUE>>=
+# the following packages will be used
+suppressPackageStartupMessages(require(xtable))
+suppressPackageStartupMessages(require(beanplot))
+suppressPackageStartupMessages(require(e1071))
+suppressPackageStartupMessages(require(nortest))
+suppressPackageStartupMessages(require(car))
+@
+Raw data is embedded in this document, and will be loaded into R. Grades from three exams each from seven sections of the same class were included in this analysis, with 183 total students. Students that did not take all three exams have been excluded from this analysis.
+<<RawData,echo=TRUE>>=
+grades<-data.frame(StudentID = 1:183, 
+                   Section = as.factor(c(rep(242,19),
+                                         rep(244,13), 
+                                         rep(243,15),
+                                         rep(241,18),
+                                         rep(151,22),
+                                         rep(231,23),
+                                         rep(232,20),
+                                         rep(233,19),
+                                         rep(234,23), # first group ends here
+                                         rep(216,11))), # second group  # 183 entries total
+                   Exam1 = c(81, 59, 96, 63, 79, 
+                             33, 63, 53, 73, 64, 39, 76, 87, 71, 56, 85, 77, 
+                             95, 69, 88, 80, 67, 59, 76, 59, 24, 79, 63, 84, 
+                             59, 63, 63, 67, 94, 96, 91, 93, 81, 77, 77, 91, 
+                             67, 51, 70, 85, 27, 71, 78, 66, 85, 50, 64, 78, 
+                             84, 95, 38, 65, 81, 50, 92, 81, 85, 76, 94, 77, 
+                             81, 77, 21, 70, 80, 74, 86, 69, 72, 85, 69, 62, 
+                             85, 92, 64, 67, 52, 90, 85, 73, 66, 68, 88, 97, 
+                             64, 95, 89, 99, 86, 99, 39, 80, 94, 85, 79, 98, 
+                             99, 91, 69, 98, 97, 89, 89, 98, 88, 83, 83, 92, 
+                             48, 81, 78, 39, 69, 45, 49, 67, 77, 93, 67, 64, 
+                             45, 84, 82, 85, 48, 89, 52, 69, 67, 88, 80, 38, 
+                             54, 83, 37, 94, 85, 59, 65, 58, 66, 21, 55, 51, 
+                             91, 70, 80, 87, 85, 91, 97, 98, 86, 93, 90, 89, 
+                             80, 94, 94, 91, 86, 84, 84, 98, 74, 95, 96, # 172 entries as of here
+                             84, 72, 86, 94, 62, 88, 89, 80, 88, 63, 52), # 183 entries here
+                   Exam2 = c(84, 
+                             88, 85, 72, 84, 48, 87, 92, 79, 69, 56, 89, 100, 
+                             65, 79, 83, 87, 91, 95, 91, 43, 81, 91, 80, 75, 
+                             63, 91, 87, 95, 49, 88, 85, 83, 96, 93, 94, 87, 
+                             75, 79, 86, 91, 67, 65, 68, 78, 14, 79, 81, 61, 
+                             95, 44, 85, 92, 90, 92, 21, 74, 73, 53, 63, 75, 
+                             88, 92, 97, 69, 92, 76, 26, 79, 83, 71, 88, 95, 
+                             49, 73, 62, 72, 95, 98, 81, 82, 79, 94, 96, 79, 
+                             63, 79, 90, 95, 53, 70, 91, 98, 85, 99, 40, 68, 
+                             55, 70, 58, 91, 59, 88, 49, 100, 94, 69, 78, 97, 
+                             75, 99, 78, 84, 45, 92, 60, 47, 64, 67, 61, 91, 
+                             85, 96, 72, 71, 58, 90, 89, 83, 53, 96, 75, 93, 
+                             91, 96, 82, 50, 63, 89, 73, 94, 77, 64, 84, 96, 
+                             92, 77, 31, 75, 86, 81, 93, 75, 92, 96, 88, 99, 
+                             75, 88, 90, 58, 77, 99, 78, 93, 81, 61, 85, 91, 
+                             90, 94, 94, #
+                             94, 62, 91, 96, 82, 89, 88, 83, 81, 57, 69), 
+                   Exam3 = c(91, 91, 91, 84, 87, 65, 79, 
+                             95, 72, 79, 52, 87, 88, 76, 87, 81, 87, 92, 93, 
+                             91, 84, 97, 89, 77, 84, 67, 88, 91, 100, 52, 81, 
+                             87, 80, 99, 96, 98, 92, 88, 91, 72, 90, 90, 54, 
+                             64, 86, 21, 78, 75, 85, 86, 72, 77, 96, 90, 98, 
+                             31, 70, 92, 78, 73, 79, 90, 86, 88, 93, 93, 88, 
+                             56, 91, 96, 88, 94, 83, 73, 90, 90, 91, 88, 98, 
+                             92, 92, 77, 92, 98, 94, 85, 92, 94, 89, 91, 87, 
+                             74, 95, 75, 90, 40, 54, 93, 86, 88, 74, 74, 94, 
+                             80, 99, 83, 78, 84, 98, 76, 93, 77, 89, 84, 97, 
+                             58, 76, 78, 58, 76, 94, 85, 93, 83, 78, 67, 94, 
+                             81, 90, 76, 100, 92, 92, 99, 97, 94, 81, 62, 95, 
+                             96, 96, 90, 70, 100, 93, 89, 86, 32, 79, 100, 
+                             89, 73, 98, 100, 95, 88, 98, 62, 89, 77, 72, 86, 
+                             100, 63, 91, 92, 98, 87, 97, 96, 94, 78, #
+                             89, 66, 88, 75, 64, 85, 77, 84, 92, 63, 61))
+
+# lets add a new column to this data set, showing each student's Average grade 
+grades$Average<-round(x = apply(X = grades[3:5],MARGIN = 1,FUN = mean),digits = 1)
+@
+The first 30 entries in the data set will be displayed in Table~\ref{tab:head30}
+
+<<xtable,results='asis',echo=TRUE>>=
+print(xtable(x = head(grades,30),label="tab:head30",
+             caption = "Example output for the first 30 student grades"),
+      include.rownames=FALSE
+      ,size = "small")
+@
+\clearpage
+For some types of analysis, it is better to use data that has been entered in a factor-level format. This will keep each individual grade entry associated with its corresponding student, section, and exam. Many R functions prefer to work with data in this format. For this purpose, we will exclude the Average exam grade data.
+<<RawData_Factor>>=
+# ID Section Exam Grade
+gradesFctr<-data.frame(StudentID=as.factor(rep(grades$StudentID,3)),
+                       Section=as.factor(rep(grades$Section,3)),
+                       Exam=as.factor(rep(1:3,each=183)),
+                       Grade=c(grades$Exam1,
+                               grades$Exam2,
+                               grades$Exam3))
+@
+A sample of this new factored data format will be displayed in Table~\ref{tab:factorData}.
+
+<<xtableFactors,results='asis'>>=
+print(xtable(head(gradesFctr,30),label="tab:factorData",
+             caption="Data entered in a factor level format"))
+@
+Summary statistics will be calculated to describe each Exam and class Section. This data will be displayed in Table~\ref{tab:SummaryStats}
+<<summaryStats,echo=TRUE,results='asis'>>=
+# make a summary data set 
+# start with mean for each Exam grade in each section
+gradesAgg<-aggregate(Grade~Section+Exam,data=gradesFctr,FUN = mean) 
+colnames(gradesAgg)[3]<-"MeanGrade"
+
+# add the Standard Deviation of the exam grades
+gradesAgg$StDev<-aggregate(Grade~Section+Exam,data=gradesFctr,FUN = sd)$Grade
+
+# add the number of students who took the exam
+gradesAgg$n<-aggregate(StudentID~Section+Exam,data=gradesFctr,
+                       FUN = function(y) length(unique(y)))$StudentID
+#$Grade
+
+gradesAgg<-gradesAgg[,c(2,1,5,3,4)]
+print(xtable(gradesAgg,label="tab:SummaryStats",
+             caption = "Summary Statistics for each section"))
+@
+\clearpage
+\section{Exam Grade Distributions Histograms}
+Histograms will be generated in order to display grade distributions for each class section on each exam. First, a series of colors will be generated for use within the plots.
+<<HistogramColors>>=
+# these colors will be used for Histogram bars
+col<-c(rep("grey",5),"red","yellow","green","blue")
+@
+A \texttt{for} loop will be used to iteratively plot each exam for each section. These plots will be saved as .pdf files, which will be loaded back into the document with \LaTeX  code.
+<<Hist_GradeDistr>>=
+for(i in unique(gradesFctr$Exam)){ # iterate by Exam
+  for(q in unique(gradesFctr[gradesFctr$Exam==i,]$Section)){ # iterate by Section
+    tmpGrades<-gradesFctr[gradesFctr$Section==q & gradesFctr$Exam==i,]$Grade
+    pdf(file=paste0("./figure/Exam_",i,"_Section_",q,"_gradeDistHist.pdf"),width=7,height=7)
+    hist(x = tmpGrades,
+         main=paste0("Exam ",i," Section ",q),
+         freq=TRUE,
+         col=col,
+         xlab="Percentage",
+         breaks=seq(from=10,to=100,by=10),
+         axes=FALSE,
+         labels=TRUE,
+         cex.axis=0.5)
+    axis(side=1, 
+         at=seq(from=10,
+                to=100,by=10),
+         labels=seq(from=10,to=100,by=10))
+    axis(side=2, 
+         at=seq(from=0,
+                to=max(tmpGrades,by=5)),
+         labels=seq(from=0,
+                    to=max(tmpGrades,by=5)))
+    legend("topleft",
+           c(paste("Mean = ",
+                   round(mean(tmpGrades))),
+             paste("Median = ",median(tmpGrades)),
+             paste("Std. Dev = ",signif(sd(tmpGrades),digits=3)),
+             paste("n = ",length(tmpGrades))),
+           bty='n')
+    dev.off()
+  }
+}
+@
+\foreach \i in {1,2,3} {
+%       \forloop[1]{LoopCounter}{1}{\value{LoopCounter} < 4+1}}{ % number of figures per page (4) +1
+%
+\begin{figure}%
+%
+\foreach \q in {151,216,231,232} {
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\foreach \q in {233,234,241,242} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\begin{figure}
+\foreach \q in {243,244} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:3}
+\end{figure}
+}
+\clearpage
+\section{Beanplots}
+Beanplots will be generated to show grade distribution for all exam grades within a section.
+<<beanplot1,eval=TRUE,include=TRUE,echo=TRUE>>=
+# display the grades in side-by-side bean plots
+for(i in unique(gradesFctr$Section)){
+  pdf(file=paste0("./figure/Section_",i,"_beanplot.pdf"),width=5,height=5)
+  beanplot(Grade~Exam,
+           data=gradesFctr[gradesFctr$Section==q,],
+           main=paste0("Section ",i," Exam Grade Distribution"),
+           names = c("Exam 1","Exam 2","Exam 3"),
+           col=list("yellow","lightgreen","lightblue"),
+           ylab="Grade %")
+  dev.off()
+}
+@
+%
+\begin{figure}%
+%
+\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\foreach \q in {233,234,241,242} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\begin{figure}
+\foreach \q in {243,244} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:3}
+\end{figure}
+\clearpage
+\section{Scatterplots}
+Scatterplots will be generated to display Exam grade data by section.
+<<ScatterPlots1,echo=TRUE>>=
+for(i in unique(gradesFctr$Section)){
+  tmp<-gradesFctr[gradesFctr$Section==i,]
+  pdf(file=paste0("./figure/Section_",i,"_GradesScatter.pdf"),width=5,height=5)
+  plot(Grade~as.numeric(Exam),
+       data=tmp,
+       ylim=c(0,100),
+       main=paste0("Section ",i," Exam Grades"),
+       xlab="Exam",ylab="Grade",
+       type="p",
+       pch=1,
+       col="blue")
+  arrows(x0=1,x1=1,
+         y0=mean(tmp[tmp$Exam==1,]$Grade)-sd(tmp[tmp$Exam==1,]$Grade),
+         y1=mean(tmp[tmp$Exam==1,]$Grade)+sd(tmp[tmp$Exam==1,]$Grade),
+         length=0.1,angle=90,code=3)
+  arrows(x0=2,x1=2,y0=mean(tmp[tmp$Exam==2,]$Grade)-sd(tmp[tmp$Exam==2,]$Grade),
+         y1=mean(tmp[tmp$Exam==2,]$Grade)+sd(tmp[tmp$Exam==2,]$Grade),
+         length=0.1,angle=90,code=3)
+  arrows(x0=3,x1=3,y0=mean(tmp[tmp$Exam==3,]$Grade)-sd(tmp[tmp$Exam==3,]$Grade),
+         y1=mean(tmp[tmp$Exam==3,]$Grade)+sd(tmp[tmp$Exam==3,]$Grade),
+         length=0.1,angle=90,code=3)
+  points(y=c(mean(tmp[tmp$Exam==1,]$Grade),
+             mean(tmp[tmp$Exam==2,]$Grade),
+             mean(tmp[tmp$Exam==3,]$Grade)),
+         x=c(1,2,3),pch=8,cex=1.5,col="red")
+  dev.off()
+}
+@
+%
+\begin{figure}%
+%
+\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\foreach \q in {233,234,241,242} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\begin{figure}
+\foreach \q in {243,244} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:3}
+\end{figure}
+\clearpage
+\section{Hypothesis Testing}
+\begin{itemize}
+\item Researcher's Hypothesis: There will be a difference between Exam 3 grades between class Sections
+\item H$_{0}$: There is no difference between grades
+\item H$_{A}$: There is a difference between grades
+\item $\alpha$ = 0.05
+\end{itemize}
+\subsection{Normality Test}
+We will test subsets of the exam grade data set for normality. The following tests will be used:
+<<Stats1,echo=TRUE>>=
+# Normality tests
+# Here are the tests we will conduct
+Tests<-c('Anderson-Darling',
+         'Cramer-von Mises',
+         'Kolmogorov-Smirnov',
+         'Chi-Square',
+         'Shapiro-Francia',
+         'Shapiro-Wilk')
+@
+First, we will test the Exam 3 grades for each class Section for normality of grade distribution. P values greater than 0.05 suggest that the data is normally distributed. 
+<<Exam3Normality>>=
+for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
+  tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
+  tmpGrades<-tmp$Grade
+  Results<-c(assign('ad1',ad.test(tmpGrades))[2],
+             assign('cv1',cvm.test(tmpGrades))[2],
+             assign('lt1',lillie.test(tmpGrades))[2],
+             assign('px1',pearson.test(tmpGrades))[2],
+             assign('sf1',sf.test(tmpGrades))[2],
+             assign('sw1',shapiro.test(tmpGrades))[2])
+  PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
+  print(xtable(PVALUES,caption = paste0("Normality tests for Section ",i," Exam 3")),
+        file = paste0("./table/Section_",i,"_Exam_3_Normality.tex"))
+}
+@
+\foreach \q in {151,216,231,232} {
+\input{./table/Section_\q _Exam_3_Normality.tex}
+}
+\foreach \q in {233,234,241,242} {
+\input{./table/Section_\q _Exam_3_Normality.tex}
+}
+\foreach \q in {243,244} {
+\input{./table/Section_\q _Exam_3_Normality.tex}
+}
+\clearpage
+QQ plots will be generated to further examine data normality.
+<<Exam3QQ>>=
+for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
+  tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
+  tmpGrades<-tmp$Grade
+  
+  Results<-c(assign('ad1',ad.test(tmpGrades))[2],
+             assign('cv1',cvm.test(tmpGrades))[2],
+             assign('lt1',lillie.test(tmpGrades))[2],
+             assign('px1',pearson.test(tmpGrades))[2],
+             assign('sf1',sf.test(tmpGrades))[2],
+             assign('sw1',shapiro.test(tmpGrades))[2])
+  PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
+  
+  pdf(file=paste0("./figure/Section_",i,"_Exam3_QQ.pdf"),width=5,height=5)
+  qqnorm(tmpGrades,col='blue',
+         main = paste0("Q-Q Plot for Section ",i," Exam 3"))
+  qqline(tmpGrades,col='red',lty='dashed',lwd=3)
+  legend("bottomright",bty = "n",cex = 0.8,
+         legend=c(paste(Tests[1],signif(PVALUES[1,],3)),
+                  paste(Tests[2],signif(PVALUES[2,],3)),
+                  paste(Tests[3],signif(PVALUES[3,],3)),
+                  paste(Tests[4],signif(PVALUES[4,],3)),
+                  paste(Tests[5],signif(PVALUES[5,],3)),
+                  paste(Tests[6],signif(PVALUES[6,],3))))
+  dev.off()
+}
+@
+\begin{figure}%
+%
+\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\foreach \q in {233,234,241,242} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\begin{figure}
+\foreach \q in {243,244} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:3}
+\end{figure}
+\clearpage
+Results suggest that grades for Exam 3 Sections 
+
+<<StatTables1,results='asis',echo=TRUE>>=
+for(i in unique(gradesFctr$Exam)){ # iterate by Exam
+  for(q in unique(gradesFctr[gradesFctr$Exam==i,]$Section)){ # iterate by Section
+    tmp<-gradesFctr[gradesFctr$Section==q & gradesFctr$Exam==i,]
+    #  print(tmp)
+    Results<-c(assign('ad1',ad.test(tmp[['Grade']]))[2],
+               assign('cv1',cvm.test(tmp[['Grade']]))[2],
+               assign('lt1',lillie.test(tmp[['Grade']]))[2],
+               assign('px1',pearson.test(tmp[['Grade']]))[2],
+               assign('sf1',sf.test(tmp[['Grade']]))[2],
+               assign('sw1',shapiro.test(tmp[['Grade']]))[2])
+    PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
+    print(xtable(PVALUES,caption = paste0("Normality tests for Section ",q," Exam ",i)),
+          file = paste0("./table/Section_",q,"_Exam_",i,"_PValue.tex"))
+  }
+}
+# p value greater  than 0.05, assume normal distribution of data; H0 is normal
+# p value less than 0.05 means the data are not normally distributed
+# 
+# qqnorm(gradesAdj[['Grade']],col='orchid')
+# qqline(gradesAdj[['Grade']],col='gray',lty='dashed',lwd=3)#Data looks very not normal ...
+
+@
+%LaTeX forloop works like this:
+%\forloop[〈step〉]{〈counter〉}{〈initial value〉}{〈condition〉}
+% \newcounter{LoopCounter}
+% \newcounter{Iterator}
+% \setcounter{Iterator}{4} % number of figures per page
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\foreach \i in {1,2,3} {
+% first column
+% \begin{minipage}[t]{0.5\textwidth}
+% \parbox{.45\linewidth}{
+\foreach \q in {151,216,231} {%},232,233,234,241,242,243,244} {
+\input{./table/Section_\q _Exam_\i _PValue.tex}
+}
+}
+% \end{minipage}
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+<<histograms,eval=FALSE,include=FALSE,echo=FALSE>>=
+col<-c(rep("grey",5),"red","yellow","green","blue")
+hist(x = grades[["Exam1"]],
+     main="Exam 1 Grade Distribution",
+     freq=TRUE,col=col,xlab="Percentage",
+     breaks=seq(from=10,to=100,by=10),
+     axes=FALSE, labels=TRUE)
+axis(side=1, at=seq(from=10,to=100,by=10),labels=seq(from=10,to=100,by=10))
+axis(side=2, at=seq(from=0,to=max(grades[["Exam1"]],
+                                  na.rm=T),
+                    by=1),
+     labels=seq(from=0,to=max(grades[["Exam1"]],
+                              na.rm=T)))
+#
+# pdf(file='/home/kellys/BIOL215_FALL2014/Exam1_gradeDistribution.pdf',width=8,height=8)
+
+# 
+# legend('topleft',bty='n', cex=1.25,
+#        legend=as.expression(bquote(Avg==.(format(Avg,digits=3)))))
+# dev.off()
+@
+
+<<beanplot,eval=FALSE,include=FALSE,echo=FALSE>>=
+beanplot(gradesAdj[3:6])
+@
+
+<<Normality,eval=FALSE,echo=FALSE>>=
+#https://statistics.laerd.com/statistical-guides/one-way-anova-statistical-guide-2.php
+
+#Normality tests
+require(e1071)
+require(nortest)
+require(car)
+
+#Here are the tests we will conduct
+Tests<-c('Anderson-Darling',
+         'Cramer-von Mises',
+         'Kolmogorov-Smirnov',
+         'Chi-Square',
+         'Shapiro-Francia',
+         'Shapiro-Wilk')
+#And now for the tests 
+#Test all grades across all sections, 
+Results<-c(assign('ad1',ad.test(gradesAdj[['Grade']]))[2],
+           assign('cv1',cvm.test(gradesAdj[['Grade']]))[2],
+           assign('lt1',lillie.test(gradesAdj[['Grade']]))[2],
+           assign('px1',pearson.test(gradesAdj[['Grade']]))[2],
+           assign('sf1',sf.test(gradesAdj[['Grade']]))[2],
+           assign('sw1',shapiro.test(gradesAdj[['Grade']]))[2])
+data.frame(P.Value=unlist(Results),row.names=Tests) #p value greater  than 0.05, assume normal distribution of data; H0 is normal
+# p value less than 0.05 means the data are not normally distributed
+
+qqnorm(gradesAdj[['Grade']],col='orchid')
+qqline(gradesAdj[['Grade']],col='gray',lty='dashed',lwd=3)#Data looks very not normal ...
+
+
+#Histogram
+hist(x=gradesAdj[['Grade']],
+     freq=F,
+     col='tomato',
+     main='Frequency Distribution of Grades',
+     xlab='grade',
+     ylab='Frequency(%)')
+Slot<-seq(from=min(gradesAdj[['Grade']]),to=max(gradesAdj[['Grade']]),length=500)#make random sequence of numbers matched to the size of the 
+lines(x=Slot,#make a dotted line to show bell curve standard dist. 
+      y=dnorm(x=Slot,mean=mean(gradesAdj[['Grade']]),sd=sd(gradesAdj[['Grade']])),
+      lty='dashed',
+      col='gray25',
+)#Still looks normal 
+text(x=30,y=0.026,labels = "Normality Tests")
+text(x=30,y=0.025,labels = paste(Tests[1],"p =",signif(as.numeric(Results[1]),digits=3),sep=" "),cex=0.75)
+text(x=30,y=0.024,labels = paste(Tests[2],"p =",signif(as.numeric(Results[2]),digits=3),sep=" "),cex=0.75)
+text(x=30,y=0.023,labels = paste(Tests[3],"p =",signif(as.numeric(Results[3]),digits=3),sep=" "),cex=0.75)
+text(x=30,y=0.022,labels = paste(Tests[4],"p =",signif(as.numeric(Results[4]),digits=3),sep=" "),cex=0.75)
+text(x=30,y=0.021,labels = paste(Tests[5],"p =",signif(as.numeric(Results[5]),digits=3),sep=" "),cex=0.75)
+text(x=30,y=0.020,labels = paste(Tests[6],"p =",signif(as.numeric(Results[6]),digits=3),sep=" "),cex=0.75)
+
+@
+
+<<Variances,eval=FALSE,echo=FALSE>>=
+
+# Test for equality of variances
+
+leveneTest(Grade~as.factor(Exam),data=gradesAdj)
+
+# Levene Test: test equlity of variances. H0 = variances are equal 
+# Test equality of variances between Exams
+# P Value is less than 0.05 so we reject the null hypothesis that variances are equal. 
+#Otherwise, would satisfy all assumptions so we can use the anova parametric test because we have 3 or more 
+###
+
+#Data not normally distributed, not equal variances... not good for ANOVA
+@
+
+
+<<LinearModel,eval=FALSE,echo=FALSE>>=
+# Make a simple linear model for exam1 & exam 4
+colnames(gradesAdj)
+Grades1_4<-subset(gradesAdj,subset=(Exam==1|Exam==4))
+LM<-lm(Grade~Exam,data=Grades1_4)#gradesAdj)#,subset=Exam %in% c('1'))
+summary(LM)
+#gradesAdj[gradesAdj$Exam==1,]
+#wilcox.test(Sepal.Width~Species,data=iris,subset=Species %in% c('setosa','versicolor'))
+# http://therostrumblog.wordpress.com/2014/01/29/basic-data-frame-manipulations-in-r/
+@
+
+<<TestStats,eval=FALSE,echo=FALSE>>=
+# Test just Exam 4 grades, see how they look
+#gradesAdj[gradesAdj$Exam==4, ]$Grade
+
+Results<-c(assign('ad1',ad.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
+           assign('cv1',cvm.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
+           assign('lt1',lillie.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
+           assign('px1',pearson.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
+           assign('sf1',sf.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
+           assign('sw1',shapiro.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2])
+data.frame(P.Value=unlist(Results),row.names=Tests)
+leveneTest(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ]) 
+ANOVA<-aov(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
+summary(ANOVA)
+@
+
+<<Exam4beanplot,eval=FALSE,echo=FALSE>>=
+
+#Make some plots for Exam 4
+
+beanplot(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
+boxplot(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
+
+
+@
+\end{document}
