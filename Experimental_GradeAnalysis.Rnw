@@ -65,9 +65,9 @@ Document updated on \date{\today}.
 %
 % This workflow analyzes student grades on three exams over the course of a semester. 
 % Things to do: get the TeX tables from the PValue normality tests to output correctly
-% finish statistical analysis; generate QQ plots, output them
-% After testing for normality, run ANOVA or similar test, figure out which Sections are different
-% Test for correlations between Exam 1, 2, 3 grades in students
+% finish statistical analysis; 
+% run ANOVA or similar test, figure out which Sections are different in Exam 3
+% Test for correlations between Exam 1, and 3 grades in students; can Exam 1 predict Exam 3?
 %%%%%%%%%%%%%%%%
 First, necessary R packages will be loaded.
 <<require_packages,echo=TRUE>>=
@@ -487,137 +487,8 @@ for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
 % \label{fig:3}
 \end{figure}
 \clearpage
-Results suggest that grades for Exam 3 Sections 
+Results suggest that grades for Exam 3 Sections ....
 
-<<StatTables1,results='asis',echo=TRUE>>=
-for(i in unique(gradesFctr$Exam)){ # iterate by Exam
-  for(q in unique(gradesFctr[gradesFctr$Exam==i,]$Section)){ # iterate by Section
-    tmp<-gradesFctr[gradesFctr$Section==q & gradesFctr$Exam==i,]
-    #  print(tmp)
-    Results<-c(assign('ad1',ad.test(tmp[['Grade']]))[2],
-               assign('cv1',cvm.test(tmp[['Grade']]))[2],
-               assign('lt1',lillie.test(tmp[['Grade']]))[2],
-               assign('px1',pearson.test(tmp[['Grade']]))[2],
-               assign('sf1',sf.test(tmp[['Grade']]))[2],
-               assign('sw1',shapiro.test(tmp[['Grade']]))[2])
-    PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
-    print(xtable(PVALUES,caption = paste0("Normality tests for Section ",q," Exam ",i)),
-          file = paste0("./table/Section_",q,"_Exam_",i,"_PValue.tex"))
-  }
-}
-# p value greater  than 0.05, assume normal distribution of data; H0 is normal
-# p value less than 0.05 means the data are not normally distributed
-# 
-# qqnorm(gradesAdj[['Grade']],col='orchid')
-# qqline(gradesAdj[['Grade']],col='gray',lty='dashed',lwd=3)#Data looks very not normal ...
-
-@
-%LaTeX forloop works like this:
-%\forloop[〈step〉]{〈counter〉}{〈initial value〉}{〈condition〉}
-% \newcounter{LoopCounter}
-% \newcounter{Iterator}
-% \setcounter{Iterator}{4} % number of figures per page
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\foreach \i in {1,2,3} {
-% first column
-% \begin{minipage}[t]{0.5\textwidth}
-% \parbox{.45\linewidth}{
-\foreach \q in {151,216,231} {%},232,233,234,241,242,243,244} {
-\input{./table/Section_\q _Exam_\i _PValue.tex}
-}
-}
-% \end{minipage}
-\newpage
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-<<histograms,eval=FALSE,include=FALSE,echo=FALSE>>=
-col<-c(rep("grey",5),"red","yellow","green","blue")
-hist(x = grades[["Exam1"]],
-     main="Exam 1 Grade Distribution",
-     freq=TRUE,col=col,xlab="Percentage",
-     breaks=seq(from=10,to=100,by=10),
-     axes=FALSE, labels=TRUE)
-axis(side=1, at=seq(from=10,to=100,by=10),labels=seq(from=10,to=100,by=10))
-axis(side=2, at=seq(from=0,to=max(grades[["Exam1"]],
-                                  na.rm=T),
-                    by=1),
-     labels=seq(from=0,to=max(grades[["Exam1"]],
-                              na.rm=T)))
-#
-# pdf(file='/home/kellys/BIOL215_FALL2014/Exam1_gradeDistribution.pdf',width=8,height=8)
-
-# 
-# legend('topleft',bty='n', cex=1.25,
-#        legend=as.expression(bquote(Avg==.(format(Avg,digits=3)))))
-# dev.off()
-@
-
-<<beanplot,eval=FALSE,include=FALSE,echo=FALSE>>=
-beanplot(gradesAdj[3:6])
-@
-
-<<Normality,eval=FALSE,echo=FALSE>>=
-#https://statistics.laerd.com/statistical-guides/one-way-anova-statistical-guide-2.php
-
-#Normality tests
-require(e1071)
-require(nortest)
-require(car)
-
-#Here are the tests we will conduct
-Tests<-c('Anderson-Darling',
-         'Cramer-von Mises',
-         'Kolmogorov-Smirnov',
-         'Chi-Square',
-         'Shapiro-Francia',
-         'Shapiro-Wilk')
-#And now for the tests 
-#Test all grades across all sections, 
-Results<-c(assign('ad1',ad.test(gradesAdj[['Grade']]))[2],
-           assign('cv1',cvm.test(gradesAdj[['Grade']]))[2],
-           assign('lt1',lillie.test(gradesAdj[['Grade']]))[2],
-           assign('px1',pearson.test(gradesAdj[['Grade']]))[2],
-           assign('sf1',sf.test(gradesAdj[['Grade']]))[2],
-           assign('sw1',shapiro.test(gradesAdj[['Grade']]))[2])
-data.frame(P.Value=unlist(Results),row.names=Tests) #p value greater  than 0.05, assume normal distribution of data; H0 is normal
-# p value less than 0.05 means the data are not normally distributed
-
-qqnorm(gradesAdj[['Grade']],col='orchid')
-qqline(gradesAdj[['Grade']],col='gray',lty='dashed',lwd=3)#Data looks very not normal ...
-
-
-#Histogram
-hist(x=gradesAdj[['Grade']],
-     freq=F,
-     col='tomato',
-     main='Frequency Distribution of Grades',
-     xlab='grade',
-     ylab='Frequency(%)')
-Slot<-seq(from=min(gradesAdj[['Grade']]),to=max(gradesAdj[['Grade']]),length=500)#make random sequence of numbers matched to the size of the 
-lines(x=Slot,#make a dotted line to show bell curve standard dist. 
-      y=dnorm(x=Slot,mean=mean(gradesAdj[['Grade']]),sd=sd(gradesAdj[['Grade']])),
-      lty='dashed',
-      col='gray25',
-)#Still looks normal 
-text(x=30,y=0.026,labels = "Normality Tests")
-text(x=30,y=0.025,labels = paste(Tests[1],"p =",signif(as.numeric(Results[1]),digits=3),sep=" "),cex=0.75)
-text(x=30,y=0.024,labels = paste(Tests[2],"p =",signif(as.numeric(Results[2]),digits=3),sep=" "),cex=0.75)
-text(x=30,y=0.023,labels = paste(Tests[3],"p =",signif(as.numeric(Results[3]),digits=3),sep=" "),cex=0.75)
-text(x=30,y=0.022,labels = paste(Tests[4],"p =",signif(as.numeric(Results[4]),digits=3),sep=" "),cex=0.75)
-text(x=30,y=0.021,labels = paste(Tests[5],"p =",signif(as.numeric(Results[5]),digits=3),sep=" "),cex=0.75)
-text(x=30,y=0.020,labels = paste(Tests[6],"p =",signif(as.numeric(Results[6]),digits=3),sep=" "),cex=0.75)
-
-@
 
 <<Variances,eval=FALSE,echo=FALSE>>=
 
@@ -636,7 +507,7 @@ leveneTest(Grade~as.factor(Exam),data=gradesAdj)
 
 
 <<LinearModel,eval=FALSE,echo=FALSE>>=
-# Make a simple linear model for exam1 & exam 4
+# Make a simple linear model for exam 1 and exam 3
 colnames(gradesAdj)
 Grades1_4<-subset(gradesAdj,subset=(Exam==1|Exam==4))
 LM<-lm(Grade~Exam,data=Grades1_4)#gradesAdj)#,subset=Exam %in% c('1'))
@@ -646,29 +517,4 @@ summary(LM)
 # http://therostrumblog.wordpress.com/2014/01/29/basic-data-frame-manipulations-in-r/
 @
 
-<<TestStats,eval=FALSE,echo=FALSE>>=
-# Test just Exam 4 grades, see how they look
-#gradesAdj[gradesAdj$Exam==4, ]$Grade
-
-Results<-c(assign('ad1',ad.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
-           assign('cv1',cvm.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
-           assign('lt1',lillie.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
-           assign('px1',pearson.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
-           assign('sf1',sf.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2],
-           assign('sw1',shapiro.test(gradesAdj[gradesAdj$Exam==4, ]$Grade))[2])
-data.frame(P.Value=unlist(Results),row.names=Tests)
-leveneTest(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ]) 
-ANOVA<-aov(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
-summary(ANOVA)
-@
-
-<<Exam4beanplot,eval=FALSE,echo=FALSE>>=
-
-#Make some plots for Exam 4
-
-beanplot(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
-boxplot(Grade~as.factor(Section),data=gradesAdj[gradesAdj$Exam==4, ])
-
-
-@
 \end{document}
