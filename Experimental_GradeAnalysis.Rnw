@@ -1,4 +1,5 @@
-\documentclass{article}
+% \documentclass{article}
+\documentclass{report}
 \usepackage[sc]{mathpazo} 
 \usepackage[T1]{fontenc}
 \usepackage{geometry} 
@@ -38,9 +39,29 @@ anchorcolor=darkblue,citecolor=darkblue}
 \usepackage{subcaption} 
 \usepackage{amsmath}
 \usepackage{graphicx}
-\usepackage{url} 
+\usepackage{url}
+\usepackage{fancyhdr} % http://linorg.usp.br/CTAN/macros/latex/contrib/fancyhdr/fancyhdr.pdf
+% the default fancy header 
+\pagestyle{fancy}
+% these are the default settings for it
+\fancyhead[LE,RO]{\slshape \rightmark}
+\fancyhead[LO,RE]{\slshape \leftmark}
+\fancyfoot[C]{\thepage}
+%%%
+% some other default header settings
+% \fancyhf{}
+% \rhead{\thepage}
+% \lhead{Guides and tutorials}
+% \rfoot{Page }
+% \pagestyle{headings} % don't use this with the fancy headings
 %%%%
+% my custom header
+% \fancyhead[LE,RO]{\slshape \rightmark}
+% \fancyhead[LO,RE]{\thepage}
+% \fancyfoot[C]{}
 \newcommand{\hlslc}[1]{\textcolor[rgb]{0.67,0.67,0.67}{\it{#1}}} %add this to preamble after \usepackage[auth-sc]{authblk}
+% \renewcommand\floatpagefraction{0.8} %% default value: 0.5
+% \renewcommand\topfraction{0.8}       %% default value: 0.7
 \begin{document}
 <<setup, include=FALSE, cache=FALSE>>=
 # this is equivalent to \SweaveOpts{...}
@@ -56,8 +77,9 @@ require(highlight)
 \date{May 6, 2015}
 
 \maketitle
+\tableofcontents
 \begin{abstract}
-A simulated data set was generated to examine student grades. Students were placed in one of seven class sections, and three exams were administered. Exam grade results will be analyzed to determine if differences exist between class sections, and to determine if exam performance can predict overall performance in the class. \\
+A simulated data set was generated to examine student grades. Students were placed in one of ten class sections, and three exams were administered. Exam grade results will be analyzed to determine if differences exist between class sections, and to determine if exam performance can predict overall performance in the class. \\
 Document updated on \date{\today}.
 \end{abstract}
 %%%%%%%%%%%%%%%%%%5
@@ -68,7 +90,11 @@ Document updated on \date{\today}.
 % finish statistical analysis; 
 % run ANOVA or similar test, figure out which Sections are different in Exam 3
 % Test for correlations between Exam 1, and 3 grades in students; can Exam 1 predict Exam 3?
+% Consider adding data for the lab and lecture instructors..
 %%%%%%%%%%%%%%%%
+\chapter{Student Grade Reporting \& Analysis}
+\section{Data Entry}
+A simulated data set representing exam grades for 183 students in ten different sections of the same class were generated. Statistical analysis will be carried out using R. 
 First, necessary R packages will be loaded.
 <<require_packages,echo=TRUE>>=
 # the following packages will be used
@@ -79,18 +105,46 @@ suppressPackageStartupMessages(require(nortest))
 suppressPackageStartupMessages(require(car))
 @
 Raw data is embedded in this document, and will be loaded into R. Grades from three exams each from seven sections of the same class were included in this analysis, with 183 total students. Students that did not take all three exams have been excluded from this analysis.
+% Section LabInstructor n LecInstructor 
+% 22 1 19 1
+% 24 1 13 1
+% 23 2 15 1
+% 21 3 18 1 % 65
+% 15 5 22 2
+% 31 4 23 2 
+% 32 2 20 2
+% 33 5 19 2
+% 34 4 23 2 % 107
+% 16 1 11 1 % 11 % this is actually a different class
+%
+%  LecInstructor : Section : n
+% 1: 21, 22, 23, 24, 16 : 76
+% 2: 15, 31, 32, 33, 34 : 107
 <<RawData,echo=TRUE>>=
 grades<-data.frame(StudentID = 1:183, 
-                   Section = as.factor(c(rep(242,19),
-                                         rep(244,13), 
-                                         rep(243,15),
-                                         rep(241,18),
-                                         rep(151,22),
-                                         rep(231,23),
-                                         rep(232,20),
-                                         rep(233,19),
-                                         rep(234,23), # first group ends here
-                                         rep(216,11))), # second group  # 183 entries total
+                   Section = as.factor(c(rep(22,19),
+                                         rep(24,13), 
+                                         rep(23,15),
+                                         rep(21,18),
+                                         rep(15,22),
+                                         rep(31,23),
+                                         rep(32,20),
+                                         rep(33,19),
+                                         rep(34,23), # first group ends here
+                                         rep(16,11))), # second group  # 183 entries total
+                   LabInstr = as.factor(c(rep(1,19),
+                                         rep(1,13), 
+                                         rep(2,15),
+                                         rep(3,18),
+                                         rep(5,22),
+                                         rep(4,23),
+                                         rep(4,20),
+                                         rep(5,19),
+                                         rep(4,23), # first group ends here
+                                         rep(1,11))),
+                   LecInstr= as.factor(c(rep(1,65),
+                                         rep(2,107),
+                                         rep(1,11))),
                    Exam1 = c(81, 59, 96, 63, 79, 
                              33, 63, 53, 73, 64, 39, 76, 87, 71, 56, 85, 77, 
                              95, 69, 88, 80, 67, 59, 76, 59, 24, 79, 63, 84, 
@@ -142,7 +196,7 @@ grades<-data.frame(StudentID = 1:183,
                              89, 66, 88, 75, 64, 85, 77, 84, 92, 63, 61))
 
 # lets add a new column to this data set, showing each student's Average grade 
-grades$Average<-round(x = apply(X = grades[3:5],MARGIN = 1,FUN = mean),digits = 1)
+grades$Average<-round(x = apply(X = grades[5:7],MARGIN = 1,FUN = mean),digits = 1)
 @
 The first 30 entries in the data set will be displayed in Table~\ref{tab:head30}
 
@@ -157,7 +211,9 @@ For some types of analysis, it is better to use data that has been entered in a 
 <<RawData_Factor>>=
 # ID Section Exam Grade
 gradesFctr<-data.frame(StudentID=as.factor(rep(grades$StudentID,3)),
+                       LecInstr=as.factor(rep(grades$LecInstr,3)),
                        Section=as.factor(rep(grades$Section,3)),
+                       LabInstr=as.factor(rep(grades$LabInstr,3)),
                        Exam=as.factor(rep(1:3,each=183)),
                        Grade=c(grades$Exam1,
                                grades$Exam2,
@@ -167,7 +223,7 @@ A sample of this new factored data format will be displayed in Table~\ref{tab:fa
 
 <<xtableFactors,results='asis'>>=
 print(xtable(head(gradesFctr,30),label="tab:factorData",
-             caption="Data entered in a factor level format"))
+             caption="First 30 entries for data entered in a factor level format"))
 @
 Summary statistics will be calculated to describe each Exam and class Section. This data will be displayed in Table~\ref{tab:SummaryStats}
 <<summaryStats,echo=TRUE,results='asis'>>=
@@ -186,10 +242,30 @@ gradesAgg$n<-aggregate(StudentID~Section+Exam,data=gradesFctr,
 
 gradesAgg<-gradesAgg[,c(2,1,5,3,4)]
 print(xtable(gradesAgg,label="tab:SummaryStats",
-             caption = "Summary Statistics for each section"))
+             caption = "Summary Statistics for each section on each exam."))
+@
+We can calculate more summary statistics, based on Lab Instructor. Results displayed in Table~\ref{tab:SummaryStats2}
+<<summaryStats2,echo=TRUE,results='asis'>>=
+# make a summary data set 
+# start with mean for each Exam grade in each section
+gradesAgg2<-aggregate(Grade~LabInstr+Exam,data=gradesFctr,FUN = mean) 
+colnames(gradesAgg2)[3]<-"MeanGrade"
+
+# add the Standard Deviation of the exam grades
+gradesAgg2$StDev<-aggregate(Grade~LabInstr+Exam,data=gradesFctr,FUN = sd)$Grade
+
+# add the number of students who took the exam
+gradesAgg2$n<-aggregate(StudentID~LabInstr+Exam,data=gradesFctr,
+                       FUN = function(y) length(unique(y)))$StudentID
+#$Grade
+
+gradesAgg2<-gradesAgg2[,c(2,1,5,3,4)]
+print(xtable(gradesAgg2,label="tab:SummaryStats2",
+             caption = "Summary Statistics for each lab instructor on each exam. Grades from all sections taught by each lab instructor are grouped together."))
 @
 \clearpage
-\section{Exam Grade Distributions Histograms}
+\section{Grade Histograms}
+\subsection{Grades by Section}
 Histograms will be generated in order to display grade distributions for each class section on each exam. First, a series of colors will be generated for use within the plots.
 <<HistogramColors>>=
 # these colors will be used for Histogram bars
@@ -230,14 +306,16 @@ for(i in unique(gradesFctr$Exam)){ # iterate by Exam
   }
 }
 @
+\clearpage
+%       \forloop[1]{LoopCounter}{1}{\value{LoopCounter} < 4+1}}{ % number of figures per page (4) +1 % Latex for loop
 \foreach \i in {1,2,3} {
-%       \forloop[1]{LoopCounter}{1}{\value{LoopCounter} < 4+1}}{ % number of figures per page (4) +1
 %
+% \section{Exam \i-  Grade Distributions} % couldn't get this to display correctly
 \begin{figure}%
 %
-\foreach \q in {151,216,231,232} {
+\foreach \q in {15,16,31,32} {
 %
-\begin{subfigure}[b]{0.5\textwidth}
+\begin{subfigure}[H]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
 \end{subfigure}
 }%
@@ -246,9 +324,10 @@ for(i in unique(gradesFctr$Exam)){ # iterate by Exam
 % \label{fig:1}
 \end{figure}
 %
+\newpage
 \begin{figure}%
-\foreach \q in {233,234,241,242} {
-\begin{subfigure}[b]{0.5\textwidth}
+\foreach \q in {33,34,21,22} {
+\begin{subfigure}[H]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
 \end{subfigure}
 }
@@ -257,24 +336,245 @@ for(i in unique(gradesFctr$Exam)){ # iterate by Exam
 \end{figure}
 %
 \begin{figure}
-\foreach \q in {243,244} {
-\begin{subfigure}[b]{0.5\textwidth}
+\foreach \q in {23,24} {
+\begin{subfigure}[H]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Exam_\i _Section_\q _gradeDistHist}
 \end{subfigure}
 }
 \caption{}
 % \label{fig:3}
 \end{figure}
-}
 \clearpage
+}
+\subsection{Grades by Lab Instructor}
+Histograms will be generated in order to display grade distributions for each lab instructor on each exam.
+A \texttt{for} loop will be used to iteratively plot each exam for each section. These plots will be saved as .pdf files, which will be loaded back into the document with \LaTeX  code.
+<<Hist_GradeDistr2>>=
+for(i in unique(gradesFctr$Exam)){ # iterate by Exam
+  for(q in unique(gradesFctr[gradesFctr$Exam==i,]$LabInstr)){ # iterate by Lab Instructor
+    tmpGrades<-gradesFctr[gradesFctr$LabInstr==q & gradesFctr$Exam==i,]$Grade
+    pdf(file=paste0("./figure/Exam_",i,"_LabIntr_",q,"_gradeDistHist.pdf"),width=7,height=7)
+    hist(x = tmpGrades,
+         main=paste0("Exam ",i," Lab Instructor ",q),
+         freq=TRUE,
+         col=col,
+         xlab="Percentage",
+         breaks=seq(from=10,to=100,by=10),
+         axes=FALSE,
+         labels=TRUE,
+         cex.axis=0.5)
+    axis(side=1, 
+         at=seq(from=10,
+                to=100,by=10),
+         labels=seq(from=10,to=100,by=10))
+    axis(side=2, 
+         at=seq(from=0,
+                to=max(tmpGrades,by=5)),
+         labels=seq(from=0,
+                    to=max(tmpGrades,by=5)))
+    legend("topleft",
+           c(paste("Mean = ",
+                   round(mean(tmpGrades))),
+             paste("Median = ",median(tmpGrades)),
+             paste("Std. Dev = ",signif(sd(tmpGrades),digits=3)),
+             paste("n = ",length(tmpGrades))),
+           bty='n')
+    dev.off()
+  }
+}
+@
+\clearpage
+%       \forloop[1]{LoopCounter}{1}{\value{LoopCounter} < 4+1}}{ % number of figures per page (4) +1 % Latex for loop
+\foreach \i in {1,2,3} {
+%
+% \section{Exam \i-  Grade Distributions} % couldn't get this to display correctly
+\begin{figure}%
+%
+\foreach \q in {1,2,3,4} {
+%
+\begin{subfigure}[H]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Exam_\i _LabIntr_\q _gradeDistHist}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\newpage
+\begin{figure}%
+\centering
+\foreach \q in {5} {
+\includegraphics[width=0.5\textwidth]{./figure/Exam_\i _LabIntr_\q _gradeDistHist}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\clearpage
+}
+%
+\section{Hypothesis Testing}
+\subsection{Exam 3 Differences by Section}
+\begin{itemize}
+\item Researcher's Hypothesis: There will be a difference between Exam 3 grades between class Sections
+\item H$_{0}$: There is no difference between grades
+\item H$_{A}$: There is a difference between grades
+\item $\alpha$ = 0.05
+\end{itemize}
+In order to determine if we can use parametric statistical testing, we will first conduct Normality tests on the Exam 3 data divided by Section.
+\subsection{Normality Test}
+We will test subsets of the exam grade data set for normality. The following standard set of Normality tests will be used:
+<<Stats1,echo=TRUE>>=
+# Normality tests
+# Here are the tests we will conduct
+Tests<-c('Shapiro-Wilk',
+         'Anderson-Darling',
+         'Shapiro-Francia',
+         'Kolmogorov-Smirnov', #Lilliefors
+         'Cramer-von Mises',
+         'Chi-Square') # Pearson
+@
+% http://cran.r-project.org/web/packages/nortest/nortest.pdf
+%http://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test
+% "Empirical testing[4] has found that Shapiro–Wilk has the best power for a given significance, followed closely by Anderson–Darling when comparing the Shapiro–Wilk, Kolmogorov–Smirnov, Lilliefors, and Anderson–Darling tests."
+%http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3693611/
+% "For small sample sizes, normality tests have little power to reject the null hypothesis and therefore small samples most often pass normality tests (7). For large sample sizes, significant results would be derived even in the case of a small deviation from normality (2, 7), although this small deviation will not affect the results of a parametric test (7)."
+First, we will test the Exam 3 grades for each class Section for normality of grade distribution. It is important to remember that for small sample sizes, normality tests may not accurately reject the null hypothesis. Due to the nature of the data and small sample sizes, it is hypothesized that the data will not be normally distributed (p<0.05)
+\begin{itemize}
+\item Normality Testing Hypothesis: The data is normally distributed
+\item H$_{0}$: The data appears to be normally distributed
+\item H$_{A}$: The data does not appear to be normally distributed
+\item $\alpha$ = 0.05
+% http://www.graphpad.com/guides/prism/6/statistics/index.htm?stat_interpreting_results_normality.htm
+% "The null hypothesis is that the data are sampled from a Gaussian distribution. If the P value is small enough, you reject that null hypothesis and so accept the alternative hypothesis that the data are not sampled from a Gaussian population. "
+% #http://stackoverflow.com/questions/7781798/seeing-if-data-is-normally-distributed-in-r/7788452#7788452
+%  "if the p-value is less than the chosen alpha level, then the null hypothesis is rejected and there is evidence that the data tested are not from a normally distributed population. In other words, the data are not normal."
+% http://stackoverflow.com/questions/15427692/perform-a-shapiro-wilk-normality-test
+% "shapiro.test tests the Null hypothesis that "the samples come from a Normal distribution" against the alternative hypothesis "the samples do not come from a Normal distribution"."
+\end{itemize}
+A \texttt{for} loop will be used to generate Q-Q plots to visually check the distribution of the data compared to that of an expected normally distributed data set. Results from the Normality tests will be embedded within each plot, with an asterisk besides tests that return significant p values less than 0.05 (i.e. data does not appear to be normally distributed).
+<<Exam3QQ>>=
+for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
+  
+  # store the data subset in a new R object
+  tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
+  # store a vector of just the Grades
+  tmpGrades<-tmp$Grade
+  # store a copy of the Normality Tests
+  tmpTests<-Tests
+  # conduct the Normality tests, save into a list
+  Results<-c(assign('sw1',shapiro.test(tmpGrades))[2],
+             assign('ad1',ad.test(tmpGrades))[2],
+             assign('sf1',sf.test(tmpGrades))[2],
+             assign('lt1',lillie.test(tmpGrades))[2],
+             assign('cv1',cvm.test(tmpGrades))[2],
+             assign('px1',pearson.test(tmpGrades))[2])
+  # evalute the Test results, put an asterisk next to significant tests
+  for(q in 1:length(Results)){
+    if(Results[q]<=0.05) tmpTests[q]<-paste0("* ",tmpTests[q]) else tmpTests[q]<-tmpTests[q]
+  }
+  
+  PVALUES<-data.frame(P.Value=unlist(Results),row.names=tmpTests)
+  
+  pdf(file=paste0("./figure/Section_",i,"_Exam3_QQ.pdf"),width=5,height=5)
+  
+  qqnorm(tmpGrades,col='blue',
+         main = paste0("Q-Q Plot for Section ",i," Exam 3"))
+  qqline(tmpGrades,col='red',lty='dashed',lwd=3)
+  
+  legend("bottomright",bty = "n",cex = 0.8,
+         legend=c(paste(tmpTests[1],signif(PVALUES[1,],3)),
+                  paste(tmpTests[2],signif(PVALUES[2,],3)),
+                  paste(tmpTests[3],signif(PVALUES[3,],3)),
+                  paste(tmpTests[4],signif(PVALUES[4,],3)),
+                  paste(tmpTests[5],signif(PVALUES[5,],3)),
+                  paste(tmpTests[6],signif(PVALUES[6,],3))))
+  dev.off()
+}
+@
+\begin{figure}%
+%
+\foreach \q in {15,16,31,32} {%,33,34,21,22,23,24} {%
+%
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}%
+%
+\caption{}
+% \label{fig:1}
+\end{figure}
+%
+\begin{figure}%
+\foreach \q in {33,34,21,22} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:2}
+\end{figure}
+%
+\begin{figure}
+\foreach \q in {23,24} {
+\begin{subfigure}[b]{0.5\textwidth}
+\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
+\end{subfigure}
+}
+\caption{}
+% \label{fig:3}
+\end{figure}
+\clearpage
+Due to small sample size, it is important to remember that Normality tests may not accurately reject the null hypothesis and give significant p-values (<0.05) suggesting that data is not normal when it actually is. Results suggest that while some data sets returned non-significant p-pvalues, which does not rule out a normal distribution of the data (unable to reject the null hypothesis), the majority of the data sets returned significant p-values suggesting that the data is not normal (reject the null hypothesis). % from these results it appears that it might not be easy to determine which 
+\subsection{Exam 3 Differences by Lab Instructor}
+\begin{itemize}
+\item Researcher's Hypothesis: There will be a difference between Exam 3 grades between Lab Instructors
+\item H$_{0}$: There is no difference between grades
+\item H$_{A}$: There is a difference between grades
+\item $\alpha$ = 0.05
+\end{itemize}
+In order to determine if we can use parametric statistical testing, we will first conduct Normality tests on the Exam 3 data divided by Lab Instructor.
+
+
+
+%%%%%%%%%%
+<<Variances,eval=FALSE,echo=FALSE>>=
+
+# Test for equality of variances
+
+leveneTest(Grade~as.factor(Exam),data=gradesAdj)
+
+# Levene Test: test equlity of variances. H0 = variances are equal 
+# Test equality of variances between Exams
+# P Value is less than 0.05 so we reject the null hypothesis that variances are equal. 
+#Otherwise, would satisfy all assumptions so we can use the anova parametric test because we have 3 or more 
+###
+
+#Data not normally distributed, not equal variances... not good for ANOVA
+@
+
+
+<<LinearModel,eval=FALSE,echo=FALSE>>=
+# Make a simple linear model for exam 1 and exam 3
+colnames(gradesAdj)
+Grades1_4<-subset(gradesAdj,subset=(Exam==1|Exam==4))
+LM<-lm(Grade~Exam,data=Grades1_4)#gradesAdj)#,subset=Exam %in% c('1'))
+summary(LM)
+#gradesAdj[gradesAdj$Exam==1,]
+#wilcox.test(Sepal.Width~Species,data=iris,subset=Species %in% c('setosa','versicolor'))
+# http://therostrumblog.wordpress.com/2014/01/29/basic-data-frame-manipulations-in-r/
+@
+%%%%%%%%%%%%%%
+\chapter{Other Visualization Methods}
 \section{Beanplots}
-Beanplots will be generated to show grade distribution for all exam grades within a section.
+Beanplots will be generated to show grade distribution for all exam grades within a section. One advantage of beanplots is that they easily display data distribution density while showing all individual data points in each data set. The ends of the bean represent the data distribution, while the bean shape represents the density of data points. Each data point is represented by a dash mark inside the bean, with the thick black bar on each bean representing the mean. The dashed line along the plot represents the mean between all data sets. One advantage of beanplots is that they easily display trends in the data that may be masked by box plots, such as bi modal distribution. They are also much easier to interpret than box plots. 
 <<beanplot1,eval=TRUE,include=TRUE,echo=TRUE>>=
 # display the grades in side-by-side bean plots
 for(i in unique(gradesFctr$Section)){
   pdf(file=paste0("./figure/Section_",i,"_beanplot.pdf"),width=5,height=5)
   beanplot(Grade~Exam,
-           data=gradesFctr[gradesFctr$Section==q,],
+           data=gradesFctr[gradesFctr$Section==i,],
            main=paste0("Section ",i," Exam Grade Distribution"),
            names = c("Exam 1","Exam 2","Exam 3"),
            col=list("yellow","lightgreen","lightblue"),
@@ -285,7 +585,7 @@ for(i in unique(gradesFctr$Section)){
 %
 \begin{figure}%
 %
-\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
+\foreach \q in {15,16,31,32} {%,33,34,21,22,23,24} {%
 %
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
@@ -297,7 +597,7 @@ for(i in unique(gradesFctr$Section)){
 \end{figure}
 %
 \begin{figure}%
-\foreach \q in {233,234,241,242} {
+\foreach \q in {33,34,21,22} {
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
 \end{subfigure}
@@ -307,7 +607,7 @@ for(i in unique(gradesFctr$Section)){
 \end{figure}
 %
 \begin{figure}
-\foreach \q in {243,244} {
+\foreach \q in {23,24} {
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _beanplot}
 \end{subfigure}
@@ -317,7 +617,7 @@ for(i in unique(gradesFctr$Section)){
 \end{figure}
 \clearpage
 \section{Scatterplots}
-Scatterplots will be generated to display Exam grade data by section.
+Scatterplots will be generated to display Exam grade data by section. A scatter plot is a standard data visulaization method that is easy to interpret. The bars on the graph above each distribution represent the standard deviation of the data set, while the red star represents the mean of each data set. These plots are a little harder to interpret than beanplots, since the data points tend to overlap heavily in dense areas of the graph. 
 <<ScatterPlots1,echo=TRUE>>=
 for(i in unique(gradesFctr$Section)){
   tmp<-gradesFctr[gradesFctr$Section==i,]
@@ -350,7 +650,7 @@ for(i in unique(gradesFctr$Section)){
 %
 \begin{figure}%
 %
-\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
+\foreach \q in {15,16,31,32} {%,33,34,21,22,23,24} {%
 %
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
@@ -362,7 +662,7 @@ for(i in unique(gradesFctr$Section)){
 \end{figure}
 %
 \begin{figure}%
-\foreach \q in {233,234,241,242} {
+\foreach \q in {33,34,21,22} {
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
 \end{subfigure}
@@ -372,7 +672,7 @@ for(i in unique(gradesFctr$Section)){
 \end{figure}
 %
 \begin{figure}
-\foreach \q in {243,244} {
+\foreach \q in {23,24} {
 \begin{subfigure}[b]{0.5\textwidth}
 \includegraphics[width=\textwidth]{./figure/Section_\q _GradesScatter}
 \end{subfigure}
@@ -381,140 +681,31 @@ for(i in unique(gradesFctr$Section)){
 % \label{fig:3}
 \end{figure}
 \clearpage
-\section{Hypothesis Testing}
-\begin{itemize}
-\item Researcher's Hypothesis: There will be a difference between Exam 3 grades between class Sections
-\item H$_{0}$: There is no difference between grades
-\item H$_{A}$: There is a difference between grades
-\item $\alpha$ = 0.05
-\end{itemize}
-\subsection{Normality Test}
-We will test subsets of the exam grade data set for normality. The following tests will be used:
-<<Stats1,echo=TRUE>>=
-# Normality tests
-# Here are the tests we will conduct
-Tests<-c('Anderson-Darling',
-         'Cramer-von Mises',
-         'Kolmogorov-Smirnov',
-         'Chi-Square',
-         'Shapiro-Francia',
-         'Shapiro-Wilk')
-@
-First, we will test the Exam 3 grades for each class Section for normality of grade distribution. P values greater than 0.05 suggest that the data is normally distributed. 
+\section{Normality Test Tables}
+A \texttt{for} loop will be used to conduct Normality tests on the Exam 3 data from each Section. The results will be printed in xtables for display in our \LaTeX document. It is important to note that xtable parameters truncate decimal values at two digits. This section is retained for code referrence purposes; the Q-Q plots generated previously give a more accurate description of test results.
 <<Exam3Normality>>=
 for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
   tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
   tmpGrades<-tmp$Grade
-  Results<-c(assign('ad1',ad.test(tmpGrades))[2],
-             assign('cv1',cvm.test(tmpGrades))[2],
-             assign('lt1',lillie.test(tmpGrades))[2],
-             assign('px1',pearson.test(tmpGrades))[2],
+  Results<-c(assign('sw1',shapiro.test(tmpGrades))[2],
+             assign('ad1',ad.test(tmpGrades))[2],
              assign('sf1',sf.test(tmpGrades))[2],
-             assign('sw1',shapiro.test(tmpGrades))[2])
+             assign('lt1',lillie.test(tmpGrades))[2],
+             assign('cv1',cvm.test(tmpGrades))[2],
+             assign('px1',pearson.test(tmpGrades))[2])
   PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
-  print(xtable(PVALUES,caption = paste0("Normality tests for Section ",i," Exam 3")),
+  print(xtable(PVALUES,caption = paste0("Normality tests for Section ",i," Exam 3")),signif.stars = TRUE,
         file = paste0("./table/Section_",i,"_Exam_3_Normality.tex"))
 }
 @
-\foreach \q in {151,216,231,232} {
+\foreach \q in {15,16,31,32} {
 \input{./table/Section_\q _Exam_3_Normality.tex}
 }
-\foreach \q in {233,234,241,242} {
+\foreach \q in {33,34,21,22} {
 \input{./table/Section_\q _Exam_3_Normality.tex}
 }
-\foreach \q in {243,244} {
+\foreach \q in {23,24} {
 \input{./table/Section_\q _Exam_3_Normality.tex}
 }
 \clearpage
-QQ plots will be generated to further examine data normality.
-<<Exam3QQ>>=
-for(i in unique(gradesFctr[gradesFctr$Exam==3,]$Section)){
-  tmp<-gradesFctr[gradesFctr$Section==i & gradesFctr$Exam==3,]
-  tmpGrades<-tmp$Grade
-  
-  Results<-c(assign('ad1',ad.test(tmpGrades))[2],
-             assign('cv1',cvm.test(tmpGrades))[2],
-             assign('lt1',lillie.test(tmpGrades))[2],
-             assign('px1',pearson.test(tmpGrades))[2],
-             assign('sf1',sf.test(tmpGrades))[2],
-             assign('sw1',shapiro.test(tmpGrades))[2])
-  PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
-  
-  pdf(file=paste0("./figure/Section_",i,"_Exam3_QQ.pdf"),width=5,height=5)
-  qqnorm(tmpGrades,col='blue',
-         main = paste0("Q-Q Plot for Section ",i," Exam 3"))
-  qqline(tmpGrades,col='red',lty='dashed',lwd=3)
-  legend("bottomright",bty = "n",cex = 0.8,
-         legend=c(paste(Tests[1],signif(PVALUES[1,],3)),
-                  paste(Tests[2],signif(PVALUES[2,],3)),
-                  paste(Tests[3],signif(PVALUES[3,],3)),
-                  paste(Tests[4],signif(PVALUES[4,],3)),
-                  paste(Tests[5],signif(PVALUES[5,],3)),
-                  paste(Tests[6],signif(PVALUES[6,],3))))
-  dev.off()
-}
-@
-\begin{figure}%
-%
-\foreach \q in {151,216,231,232} {%,233,234,241,242,243,244} {%
-%
-\begin{subfigure}[b]{0.5\textwidth}
-\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
-\end{subfigure}
-}%
-%
-\caption{}
-% \label{fig:1}
-\end{figure}
-%
-\begin{figure}%
-\foreach \q in {233,234,241,242} {
-\begin{subfigure}[b]{0.5\textwidth}
-\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
-\end{subfigure}
-}
-\caption{}
-% \label{fig:2}
-\end{figure}
-%
-\begin{figure}
-\foreach \q in {243,244} {
-\begin{subfigure}[b]{0.5\textwidth}
-\includegraphics[width=\textwidth]{./figure/Section_\q _Exam3_QQ}
-\end{subfigure}
-}
-\caption{}
-% \label{fig:3}
-\end{figure}
-\clearpage
-Results suggest that grades for Exam 3 Sections ....
-
-
-<<Variances,eval=FALSE,echo=FALSE>>=
-
-# Test for equality of variances
-
-leveneTest(Grade~as.factor(Exam),data=gradesAdj)
-
-# Levene Test: test equlity of variances. H0 = variances are equal 
-# Test equality of variances between Exams
-# P Value is less than 0.05 so we reject the null hypothesis that variances are equal. 
-#Otherwise, would satisfy all assumptions so we can use the anova parametric test because we have 3 or more 
-###
-
-#Data not normally distributed, not equal variances... not good for ANOVA
-@
-
-
-<<LinearModel,eval=FALSE,echo=FALSE>>=
-# Make a simple linear model for exam 1 and exam 3
-colnames(gradesAdj)
-Grades1_4<-subset(gradesAdj,subset=(Exam==1|Exam==4))
-LM<-lm(Grade~Exam,data=Grades1_4)#gradesAdj)#,subset=Exam %in% c('1'))
-summary(LM)
-#gradesAdj[gradesAdj$Exam==1,]
-#wilcox.test(Sepal.Width~Species,data=iris,subset=Species %in% c('setosa','versicolor'))
-# http://therostrumblog.wordpress.com/2014/01/29/basic-data-frame-manipulations-in-r/
-@
-
 \end{document}
