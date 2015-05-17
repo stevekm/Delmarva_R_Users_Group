@@ -54,12 +54,14 @@ Stephen Kelly\,$^{1}$, %Your name
 \maketitle
 
 \begin{abstract}
-A data set was acquired from academic sources, describing qualities of an industrial adhesive compound under differing conditions of temperature and pressure. Adhesive strength was measured, and statistical analysis will be used to determine if significant differences exist between different conditions.
+A data set was acquired from academic sources, describing qualities of an industrial adhesive compound under differing conditions of temperature and pressure. 
+Adhesive strength was measured, and statistical analysis will be used to determine if significant differences exist between different conditions.
 Document updated on \date{\today}.
 \end{abstract}
 
 \section{Data Entry}
-We will be analyzing data describing the strength of an industrial adhesive compound under varying levels of temperature and pressure. The data was obtained from academic sources, and is entered in to R in the following code chunk.
+We will be analyzing data describing the strength of an industrial adhesive compound under varying levels of temperature and pressure. 
+The data was obtained from academic sources, and is entered in to R in the following code chunk.
 <<StartHere>>=
 suppressPackageStartupMessages(require(dae))#these packages will be used
 suppressPackageStartupMessages(require(e1071))
@@ -126,7 +128,8 @@ Results<-c(assign('ad1',ad.test(     Data[['Readings']]))[2],
 PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
 PVALUES
 @
-The normality tests  all showed p values greater than 0.05. We cannot reject the null hypothesis; the data appears to be normally distributed.
+The normality tests  all showed p values greater than 0.05. 
+We cannot reject the null hypothesis; the data appears to be normally distributed.
 \subsection{Normality Plots}
 We can further visualize the distribution of the data.
 <<QQ_Plots>>=
@@ -161,9 +164,11 @@ lines(x  =Pi,#plots a normal curve based on the data
       lty='dashed',
       col='gray25')
 @
-In this section, we generated a Q-Q plot in order to show the distribution of the data to again check for normality, along with a histogram overlaying an ideal normal distribution curve over the data. Again, the data seems to have a roughly normal distribution. 
+In this section, we generated a Q-Q plot in order to show the distribution of the data to again check for normality, along with a histogram overlaying an ideal normal distribution curve over the data. 
+Again, the data seems to have a roughly normal distribution. 
 \section{Homogeneity}
-In this section, we will test the data for homogeneity of variance. The null hypothesis assumes homogeneity. We will use Bartlett's Test for this. 
+In this section, we will test the data for homogeneity of variance. 
+The null hypothesis assumes homogeneity. We will use Bartlett's Test for this. 
 \begin{itemize}
 \item H$_{0}$: The variances are equal
 \item H$_{A}$: The variances are not equal
@@ -176,17 +181,23 @@ bartlett.test(formula=Readings~Temp,data=Data)
 # test the Pressure data
 bartlett.test(formula=Readings~Pressure,data=Data)
 @
-P values in these tests were both above 0.05. We cannot reject the null hypothesis and must conclude that the variances appear to be equal.
+P values in these tests were both above 0.05. 
+We cannot reject the null hypothesis and must conclude that the variances appear to be equal.
 \subsection{Homogeneous Subsets}
 <<F>>=
 tukey.1df(aov.obj=Fit1.1, data=Data) #Tukey test for non-additivity
 TukeyHSD(Fit1.1)#Test for homogenous subsets
 Fit1.1.stdres<-rstandard(Fit1.1)
 @ 
-Tukey tests were used to test for homogeneity of subsets, and for non-additivity. The HSD test showed that Temperature levels 260 and 250 group together with a P value of 0.05, while levels 260 and 270 group together with a P value of 0.04. No other temperature or Pressure groups showed homogeneity. The 95 percent confidence intervals were also calculated. 
+Tukey tests were used to test for homogeneity of subsets, and for non-additivity. 
+The HSD test showed that Temperature levels 260 and 250 group together with a P value of 0.05, while levels 260 and 270 group together with a P value of 0.04. 
+No other temperature or Pressure groups showed homogeneity. 
+The 95 percent confidence intervals were also calculated. 
 
 \section{Conclusion}
-In conclusion, the results suggest that there is a difference in adhesive strength under different levels of Temperature (p less than 0.05), causing us to reject the null hypothesis. The 260 \& 270, and 250\& 260 Temperature groups were suggested to be homogeneous subsets. Data showed a normal distribution. 
+In conclusion, the results suggest that there is a difference in adhesive strength under different levels of Temperature (p less than 0.05), causing us to reject the null hypothesis. 
+The 260 \& 270, and 250\& 260 Temperature groups were suggested to be homogeneous subsets. 
+Data showed a normal distribution. 
 \section{System and Session Information}
 <<Session>>=
 system('uname -srv',intern=T)
