@@ -50,11 +50,13 @@ Stephen Kelly
 
 \maketitle
 \begin{abstract}
-A data set was acquired from academic sources, containing information for several restaurants gathered in the 1960's. We will use linear regression modeling techniques to determine which predictors, if any, have an effect on restaurant sales.\\
+A data set was acquired from academic sources, containing information for several restaurants gathered in the 1960's. 
+We will use linear regression modeling techniques to determine which predictors, if any, have an effect on restaurant sales.\\
 Document updated on \date{\today}.
 \end{abstract}
 \section{Data Entry}
-The original data was supplied in a .csv file. This file was loaded into an R object. For ease of code distribution, the raw data and data structure was subsequently output to the console, and then copied and pasted into a code chunk so that data could be embedded within this document. \\
+The original data was supplied in a .csv file. 
+This file was loaded into an R object. For ease of code distribution, the raw data and data structure was subsequently output to the console, and then copied and pasted into a code chunk so that data could be embedded within this document. \\
 First, we must load up the necessary R packages for use in this analysis.
 <<Packages>>=
 # these packages will be used
@@ -65,7 +67,8 @@ suppressPackageStartupMessages(require(MASS))
 suppressPackageStartupMessages(require(xtable))
 suppressPackageStartupMessages(require(stats))
 @
-The following code chunk demonstrates the importation of data from the original .csv file. Values of NA are removed from the data to simplify analysis.
+The following code chunk demonstrates the importation of data from the original .csv file. 
+Values of NA are removed from the data to simplify analysis.
 <<Data_import,eval=FALSE>>=
 # This code chunk imports the data
 # This code chunk is for reference only
@@ -80,7 +83,10 @@ Restaurant<-na.omit(Restaurant)
 # output the raw data & data structure so we can embed it in the document
 dput(Restaurant)
 @
-Using the \texttt{dput()} command in R, we are able to output R code necessary to re-create the original object. This code has been copied and pasted into an R code chunk, and will be used during document compilation. There is a large amount of data, so we will not display this chunk in the compiled version of the document since it will take up several pages. Instead, we will display a sample subsection of the data in Table~\ref{tab:SummaryData}
+Using the \texttt{dput()} command in R, we are able to output R code necessary to re-create the original object. 
+This code has been copied and pasted into an R code chunk, and will be used during document compilation. 
+There is a large amount of data, so we will not display this chunk in the compiled version of the document since it will take up several pages. 
+Instead, we will display a sample subsection of the data in Table~\ref{tab:SummaryData}
 <<Data_embed,echo=FALSE>>=
 Restaurant<-structure(list(outlook = c(2L, 4L, 5L, 2L, 3L, 4L, 4L, 4L, 3L, 
 3L, 3L, 5L, 3L, 3L, 2L, 3L, 4L, 6L, 4L, 2L, 2L, 4L, 4L, 4L, 4L, 
@@ -298,7 +304,10 @@ colnames(Restaurant)[-2]
 @
 \section{Hypotheses}
 \subsection{Goals}
-Our goal is to compare linear regression equations derived from different models in the analysis of restaurant predictors versus sales. Backwards, forwards, and stepwise models will be used. We will also be evaluating the results to determine if all assumptions were met. Residuals will be plotted,
+Our goal is to compare linear regression equations derived from different models in the analysis of restaurant predictors versus sales. 
+Backwards, forwards, and stepwise models will be used. 
+We will also be evaluating the results to determine if all assumptions were met. 
+Residuals will be plotted,
 % R\(^{2}\) values will be found,
 and normality will be tested.
 \section{Linear Regression}
@@ -349,7 +358,8 @@ par(mfrow=c(2,2))
 plot(LinearReg)
 @
 \subsection{Store Residuals}
-Now, we will test the normality of standardized residuals. First, store the residuals from the data set.
+Now, we will test the normality of standardized residuals. 
+First, store the residuals from the data set.
 <<Residuals>>=
 Resid.Lin<-rstandard(LinearReg)
 @
@@ -368,7 +378,8 @@ plot(Resid.Lin~FittedValues,
 @
 
 \subsection{Q-Q Plot Overall Regression}
- Next we will generate some Q-Q plots to view the distribution of the data by plotting the standardized residuals. First, we will show the overall linear regression, which includes all predictors.
+ Next we will generate some Q-Q plots to view the distribution of the data by plotting the standardized residuals. 
+ First, we will show the overall linear regression, which includes all predictors.
 <<QPlots,eval=TRUE>>=
 #OVERALL LINEAR REGRESSION PLOT
 qqnorm(Resid.Lin,
