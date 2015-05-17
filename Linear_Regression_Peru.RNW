@@ -49,11 +49,14 @@ Stephen Kelly
 
 \maketitle
 \begin{abstract}
-A data set was acquired from academic sources, describing health predictors of a population of Peruvians. Linear regression modeling will be used to determine which predictors, if any, are significant.
+A data set was acquired from academic sources, describing health predictors of a population of Peruvians. 
+Linear regression modeling will be used to determine which predictors, if any, are significant.
 Document updated on \date{\today}.
 \end{abstract}
 \section{Data Entry}
-A dataset of health data from a group of Peruvians who grew up in small villages and subsequently moved to large cities was obtained from academic sources. The data was originally stored in a .csv file, which was loaded into R.  For ease of code distribution, the raw data and data structure was subsequently output to the console, and then copied and pasted into a code chunk so that data could be embedded within this document. \\
+A dataset of health data from a group of Peruvians who grew up in small villages and subsequently moved to large cities was obtained from academic sources. 
+The data was originally stored in a .csv file, which was loaded into R.  
+For ease of code distribution, the raw data and data structure was subsequently output to the console, and then copied and pasted into a code chunk so that data could be embedded within this document. \\
 First, we must load up the necessary R packages for use in this analysis.
 <<Require>>=
 #these packages will be used
@@ -74,7 +77,10 @@ Peru<-read.csv("/home/kellys/Mat506_Biostats/peru.csv")
 # output the raw data & data structure so we can embed it in the document
 dput(Peru)
 @
-Using the \texttt{dput()} command in R, we are able to output R code necessary to re-create the original object. This code has been copied and pasted into an R code chunk, and will be used during document compilation. There is a large amount of data, so we will not display this chunk in the compiled version of the document since it will take up several pages. Instead, we will display a sample subsection of the data in Table~\ref{tab:SummaryData}
+Using the \texttt{dput()} command in R, we are able to output R code necessary to re-create the original object. 
+This code has been copied and pasted into an R code chunk, and will be used during document compilation. 
+There is a large amount of data, so we will not display this chunk in the compiled version of the document since it will take up several pages. 
+Instead, we will display a sample subsection of the data in Table~\ref{tab:SummaryData}
 <<Data_embed,echo=FALSE>>=
 Peru<-structure(list(age = c(21L, 22L, 24L, 24L, 25L, 27L, 28L, 28L, 
 31L, 32L, 33L, 33L, 34L, 35L, 35L, 36L, 36L, 37L, 37L, 38L, 38L, 
@@ -204,7 +210,8 @@ legend("bottomright", bty="n",
 @
 \section{Normality}
 \subsection{Store Residuals}
-Next, we will test the normality of standardized residuals. We will store the standardized residuals from each linear regression model.
+Next, we will test the normality of standardized residuals. 
+We will store the standardized residuals from each linear regression model.
 <<Residuals>>=
 Resid.Lin<-rstandard(LinearReg)
 Resid.Age<-rstandard(LinAge)
@@ -212,7 +219,8 @@ Resid.Years<-rstandard(LinYears)
 Resid.Weight<-rstandard(LinWeight)
 @
 \subsection{Q-Q Plot Overall Regression}
- Next we will generate some Q-Q plots to view the distribution of the data by plotting the standardized residuals. First, we will show the overall linear regression, which includes all factors (Age, Years, Weight).
+ Next we will generate some Q-Q plots to view the distribution of the data by plotting the standardized residuals. 
+ First, we will show the overall linear regression, which includes all factors (Age, Years, Weight).
 <<QPlots,eval=TRUE>>=
 #OVERALL LINEAR REGRESSION PLOT
 qqnorm(Resid.Lin,
@@ -315,10 +323,13 @@ data.frame(P.Value=unlist(Results3),row.names=Tests)
 data.frame(P.Value=unlist(Results4),row.names=Tests)
 @
 
-Here we have run a series of normality tests on the different linear regression models. While some Shapiro test concluded that some linear models were not normal (Systol vs. Year, Age), most of the test were not significant enough to indicate a lack of normal distribution in the data.
+Here we have run a series of normality tests on the different linear regression models. 
+While some Shapiro test concluded that some linear models were not normal (Systol vs. Year, Age), most of the test were not significant enough to indicate a lack of normal distribution in the data.
 
 \section{Conclusions}
-Based on the individual linear regression models for the predictors Years post leaving village, Age, and Weight, Weight was the only predictor that consistently showed a significant relationship with Systolic blood pressure (P<0.001). This relationship had an R\(^{2}\) of 0.25, meaning that this predictor explained  25\% of the variation among measurements of Systolic blood pressure. With this data, we can reject the null hypothesis and accept that there is a statistically significant relationship between weight and systolic blood pressure in the sampled group.\\
+Based on the individual linear regression models for the predictors Years post leaving village, Age, and Weight, Weight was the only predictor that consistently showed a significant relationship with Systolic blood pressure (P<0.001). 
+This relationship had an R\(^{2}\) of 0.25, meaning that this predictor explained  25\% of the variation among measurements of Systolic blood pressure. 
+With this data, we can reject the null hypothesis and accept that there is a statistically significant relationship between weight and systolic blood pressure in the sampled group.\\
 Strangely, Years post leaving village was shown to be significant (P<0.05) when a linear regression was run including all factors (Years, Age, Weight), but when run individually, Years was not seen to be significant (P>0.05).
 
 \section{System and Session Information}
