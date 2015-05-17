@@ -59,7 +59,7 @@ Document updated on \date{\today}.
 \end{abstract}
 
 \section{Data Entry}
-We will be analyzing data describing the strength of an industrial adhesive compound under varying levels of temerature and pressure. The data was obtained from academic sources, and is entered in to R in the following code chunk.
+We will be analyzing data describing the strength of an industrial adhesive compound under varying levels of temperature and pressure. The data was obtained from academic sources, and is entered in to R in the following code chunk.
 <<StartHere>>=
 suppressPackageStartupMessages(require(dae))#these packages will be used
 suppressPackageStartupMessages(require(e1071))
@@ -103,6 +103,11 @@ print(model.tables(AOV1,"means"),digits=3)
 \section{Normality}
 \subsection{Normality Testing}
 Next, we must run normality tests to see if it is appropriate to use parametric statistical analysis on the data set. 
+\begin{itemize}
+\item H$_{0}$: The data appears to be normally distributed
+\item H$_{A}$: The data does not appear to be normally distributed
+\item $\alpha$ = 0.05
+\end{itemize}
 <<TukeyNormalityTests>>=
 # Normality tests
 Tests<-c('Anderson-Darling',   # Similar to Shapiro, but emphasizes tails
@@ -118,14 +123,26 @@ Results<-c(assign('ad1',ad.test(     Data[['Readings']]))[2],
            assign('sf1',sf.test(     Data[['Readings']]))[2],
            assign('sw1',shapiro.test(Data[['Readings']]))[2]
 )
-data.frame(P.Value=unlist(Results),row.names=Tests)
+PVALUES<-data.frame(P.Value=unlist(Results),row.names=Tests)
+PVALUES
 @
-The normality tests  all showed p values greater than 0.05, suggesting that the data is normally distributed. 
+The normality tests  all showed p values greater than 0.05. We cannot reject the null hypothesis; the data appears to be normally distributed.
 \subsection{Normality Plots}
-<<Plots>>=
+We can further visualize the distribution of the data.
+<<QQ_Plots>>=
 qqnorm(Data[,1])#generates a qqplot
 qqline(Data[,1],col=2)#puts a line on the qqplot
+legend("bottomright",bty = "n",cex = 0.8, # add data to the plot
+         legend=c(paste("n = ",nrow(Data)), # number of data points
+                  paste(Tests[1],signif(PVALUES[1,],3)), # the p-values
+                  paste(Tests[2],signif(PVALUES[2,],3)),
+                  paste(Tests[3],signif(PVALUES[3,],3)),
+                  paste(Tests[4],signif(PVALUES[4,],3)),
+                  paste(Tests[5],signif(PVALUES[5,],3)),
+                  paste(Tests[6],signif(PVALUES[6,],3))))
+@
 
+<<Historgrams>>=
 hist(x   =Data[['Readings']], #generates a histogram to show sampling distribution
      freq=FALSE,
      col ='turquoise',
@@ -146,12 +163,20 @@ lines(x  =Pi,#plots a normal curve based on the data
 @
 In this section, we generated a Q-Q plot in order to show the distribution of the data to again check for normality, along with a histogram overlaying an ideal normal distribution curve over the data. Again, the data seems to have a roughly normal distribution. 
 \section{Homogeneity}
-In this section, we will test the data for homogeneity of variance. The null hypothesis assumes homogeneity.
+In this section, we will test the data for homogeneity of variance. The null hypothesis assumes homogeneity. We will use Bartlett's Test for this. 
+\begin{itemize}
+\item H$_{0}$: The variances are equal
+\item H$_{A}$: The variances are not equal
+\item $\alpha$ = 0.05
+\end{itemize}
 <<bartletts_test>>=
+# test the temperature data
 bartlett.test(formula=Readings~Temp,data=Data)
+
+# test the Pressure data
 bartlett.test(formula=Readings~Pressure,data=Data)
 @
-P values in these tests were both above 0.05, suggesting that the variance in each group is the same.
+P values in these tests were both above 0.05. We cannot reject the null hypothesis and must conclude that the variances appear to be equal.
 \subsection{Homogeneous Subsets}
 <<F>>=
 tukey.1df(aov.obj=Fit1.1, data=Data) #Tukey test for non-additivity
