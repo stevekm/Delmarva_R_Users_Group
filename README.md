@@ -1,5 +1,5 @@
 # Stats
-Source code for statistical analysis workflows, including LaTeX write-ups (.RNW).
+Source code for statistical analysis workflows, including LaTeX write-ups with R code (.RNW).
 
 Find the latest compiled versions of each at the following URLs:
 
