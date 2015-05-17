@@ -1,4 +1,4 @@
-Projects here are source-code only. Find the latest compiled versions of each at the following URLs:
+Projects hosted on GitHub are source-code only. Find the latest compiled versions of each at the following URLs:
 
 ANOVA_adhesives.pdf
 https://www.dropbox.com/s/113gpg4drkiwl9a/ANOVA_adhesives.pdf?dl=0
